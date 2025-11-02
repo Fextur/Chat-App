@@ -29,9 +29,8 @@ export class AuthController {
     }
 
     const decodedToken = await this.authService.verifyIdToken(idToken);
-    const { accessToken, user } = await this.authService.createAccessTokenAndUser(
-      decodedToken.uid,
-    );
+    const { accessToken, user } =
+      await this.authService.createAccessTokenAndUser(decodedToken.uid);
 
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
@@ -67,4 +66,3 @@ export class AuthController {
     return { message: 'Logged out successfully' };
   }
 }
-
