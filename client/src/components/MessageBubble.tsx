@@ -42,7 +42,9 @@ export const MessageBubble = ({
           sx={{
             display: "flex",
             justifyContent: "center",
-            my: 2,
+            alignItems: "center",
+            height: "58px",
+            my: 0,
           }}
         >
           <Typography

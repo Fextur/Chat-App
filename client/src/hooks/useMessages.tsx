@@ -89,8 +89,7 @@ const generateMockMessages = (): Message[] => {
       id: "13",
       user: "alice@example.com",
       content: "Heres the mockup Ive been working on",
-      media:
-        "https://images.unsplash.com/photo-1551650975-87deedd944c3?w=400&h=300&fit=crop",
+      media: "https://static.thenounproject.com/png/4778723-200.png",
       timestamp: new Date(yesterday.setHours(13, 20, 0, 0)),
     },
     {

@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useLayoutEffect } from "react";
 import { Box, CircularProgress, Typography } from "@mui/material";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Message } from "@/types";
@@ -18,15 +18,12 @@ export const ChatWindow = ({
   currentUserEmail,
 }: ChatWindowProps) => {
   const parentRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const imageDimensionsRef = useRef<
+    Map<string, { width: number; height: number }>
+  >(new Map());
   const shouldAutoScrollRef = useRef(true);
   const previousMessageCountRef = useRef(0);
-
-  const virtualizer = useVirtualizer({
-    count: messages?.length ?? 0,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 100,
-    overscan: 5,
-  });
 
   const isSameDay = (date1: Date, date2: Date) => {
     return (
@@ -47,6 +44,125 @@ export const ChatWindow = ({
       new Date(previousMessage.timestamp)
     );
   };
+
+  const estimateSize = (index: number): number => {
+    const message = messages[index];
+    if (!message) return 100;
+
+    let estimatedHeight = 0;
+
+    if (shouldShowDateHeader(index)) {
+      estimatedHeight += 58;
+    }
+
+    estimatedHeight += 80;
+
+    if (message.media) {
+      const dimensions = imageDimensionsRef.current.get(message.media);
+      if (dimensions) {
+        const containerWidth = parentRef.current?.clientWidth || 500;
+        const maxWidth = containerWidth * 0.7;
+        const maxHeight = 300;
+
+        const aspectRatio = dimensions.width / dimensions.height;
+
+        let renderedWidth = dimensions.width;
+        let renderedHeight = dimensions.height;
+
+        if (renderedWidth > maxWidth) {
+          renderedWidth = maxWidth;
+          renderedHeight = maxWidth / aspectRatio;
+        }
+
+        if (renderedHeight > maxHeight) {
+          renderedHeight = maxHeight;
+          renderedWidth = maxHeight * aspectRatio;
+        }
+
+        estimatedHeight += renderedHeight;
+      } else {
+        estimatedHeight += 150;
+      }
+    }
+
+    if (message.content) {
+      const lines = Math.ceil(message.content.length / 40);
+      estimatedHeight += lines * 20;
+      if (message.media) {
+        estimatedHeight += 8;
+      }
+    }
+
+    return estimatedHeight;
+  };
+
+  const virtualizer = useVirtualizer({
+    count: messages?.length ?? 0,
+    getScrollElement: () => parentRef.current,
+    estimateSize,
+    overscan: 5,
+  });
+
+  useEffect(() => {
+    messages.forEach((message) => {
+      if (message.media && !imageDimensionsRef.current.has(message.media)) {
+        const img = new Image();
+        img.onload = () => {
+          imageDimensionsRef.current.set(message.media!, {
+            width: img.naturalWidth,
+            height: img.naturalHeight,
+          });
+          virtualizer.measure();
+        };
+        img.onerror = () => {
+          imageDimensionsRef.current.set(message.media!, {
+            width: 800,
+            height: 600,
+          });
+          virtualizer.measure();
+        };
+        img.src = message.media;
+      }
+    });
+  }, [messages, virtualizer]);
+
+  useLayoutEffect(() => {
+    const virtualItems = virtualizer.getVirtualItems();
+    virtualItems.forEach((virtualItem) => {
+      const element = itemRefs.current.get(virtualItem.index);
+      if (element) {
+        virtualizer.measureElement(element);
+      }
+    });
+  }, [virtualizer, messages.length]);
+
+  useEffect(() => {
+    const handleImageLoad = () => {
+      virtualizer.getVirtualItems().forEach((virtualItem) => {
+        const element = itemRefs.current.get(virtualItem.index);
+        if (element) {
+          virtualizer.measureElement(element);
+        }
+      });
+    };
+
+    const images = parentRef.current?.querySelectorAll("img");
+    images?.forEach((img) => {
+      if (img.complete) {
+        handleImageLoad();
+      } else {
+        img.addEventListener("load", handleImageLoad);
+        img.addEventListener("error", handleImageLoad);
+      }
+    });
+
+    return () => {
+      images?.forEach((img) => {
+        img.removeEventListener("load", handleImageLoad);
+        img.removeEventListener("error", handleImageLoad);
+      });
+    };
+  }, [virtualizer, messages]);
 
   useEffect(() => {
     if (messages && messages.length > 0 && parentRef.current) {
@@ -147,6 +263,14 @@ export const ChatWindow = ({
           return (
             <div
               key={virtualItem.key}
+              ref={(el) => {
+                if (el) {
+                  itemRefs.current.set(virtualItem.index, el);
+                } else {
+                  itemRefs.current.delete(virtualItem.index);
+                }
+              }}
+              data-index={virtualItem.index}
               style={{
                 position: "absolute",
                 top: 0,
