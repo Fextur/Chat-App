@@ -296,7 +296,7 @@ const generateMockMessages = (): Message[] => {
     },
     {
       id: "44",
-      user: "jane@example.com",
+      user: "bob@example.com",
       content: "Thanks John! Really excited about this project",
       timestamp: new Date(now.setHours(12, 25, 0, 0)),
     },
@@ -314,13 +314,13 @@ const generateMockMessages = (): Message[] => {
     },
     {
       id: "47",
-      user: "john@example.com",
+      user: "bob@example.com",
       content: "Couldn't have said it better myself",
       timestamp: new Date(now.setHours(12, 40, 0, 0)),
     },
     {
       id: "48",
-      user: "jane@example.com",
+      user: "bob@example.com",
       content: "Alright, time for lunch! 🍽️",
       timestamp: new Date(now.setHours(12, 45, 0, 0)),
     },
@@ -332,6 +332,12 @@ const generateMockMessages = (): Message[] => {
     },
     {
       id: "50",
+      user: "alice@example.com",
+      content: "See you there!",
+      timestamp: new Date(now.setHours(12, 55, 0, 0)),
+    },
+    {
+      id: "51",
       user: "alice@example.com",
       content: "See you there!",
       timestamp: new Date(now.setHours(12, 55, 0, 0)),

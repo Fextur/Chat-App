@@ -73,18 +73,20 @@ export const MessageBubble = ({
         }}
       >
         <Box sx={{ maxWidth: "70%", minWidth: "120px" }}>
-          <Typography
-            variant="caption"
-            sx={{
-              color: "text.secondary",
-              mb: 0.5,
-              display: "block",
-              px: 1,
-              textAlign: isCurrentUser ? "right" : "left",
-            }}
-          >
-            {message.user}
-          </Typography>
+          {!isCurrentUser && (
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                mb: 0.5,
+                display: "block",
+                px: 1,
+                textAlign: "left",
+              }}
+            >
+              {message.user}
+            </Typography>
+          )}
 
           <Paper
             elevation={1}

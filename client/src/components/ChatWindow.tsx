@@ -1,4 +1,4 @@
-import { useRef, useEffect, useLayoutEffect } from "react";
+import { useRef, useEffect, useLayoutEffect, useMemo } from "react";
 import { Box, CircularProgress, Typography } from "@mui/material";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Message } from "@/types";
@@ -59,56 +59,63 @@ export const ChatWindow = ({
     );
   };
 
-  const estimateSize = (index: number): number => {
-    const message = messages[index];
-    if (!message) return 100;
+  const estimateSize = useMemo(() => {
+    return (index: number): number => {
+      const message = messages[index];
+      if (!message) return 100;
 
-    let estimatedHeight = 0;
+      const isCurrentUser = message.user === currentUserEmail;
+      let estimatedHeight = 0;
 
-    if (shouldShowDateHeader(index)) {
-      estimatedHeight += 58;
-    }
-
-    estimatedHeight += 80;
-
-    if (message.media) {
-      const dimensions = imageDimensionsRef.current.get(message.media);
-      if (dimensions) {
-        const containerWidth = parentRef.current?.clientWidth || 500;
-        const maxWidth = containerWidth * 0.7;
-        const maxHeight = 300;
-
-        const aspectRatio = dimensions.width / dimensions.height;
-
-        let renderedWidth = dimensions.width;
-        let renderedHeight = dimensions.height;
-
-        if (renderedWidth > maxWidth) {
-          renderedWidth = maxWidth;
-          renderedHeight = maxWidth / aspectRatio;
-        }
-
-        if (renderedHeight > maxHeight) {
-          renderedHeight = maxHeight;
-          renderedWidth = maxHeight * aspectRatio;
-        }
-
-        estimatedHeight += renderedHeight;
-      } else {
-        estimatedHeight += 150;
+      if (shouldShowDateHeader(index)) {
+        estimatedHeight += 58;
       }
-    }
 
-    if (message.content) {
-      const lines = Math.ceil(message.content.length / 40);
-      estimatedHeight += lines * 20;
+      estimatedHeight += 80;
+
+      if (isCurrentUser) {
+        estimatedHeight -= 24;
+      }
+
       if (message.media) {
-        estimatedHeight += 8;
-      }
-    }
+        const dimensions = imageDimensionsRef.current.get(message.media);
+        if (dimensions) {
+          const containerWidth = parentRef.current?.clientWidth || 500;
+          const maxWidth = containerWidth * 0.7;
+          const maxHeight = 300;
 
-    return estimatedHeight;
-  };
+          const aspectRatio = dimensions.width / dimensions.height;
+
+          let renderedWidth = dimensions.width;
+          let renderedHeight = dimensions.height;
+
+          if (renderedWidth > maxWidth) {
+            renderedWidth = maxWidth;
+            renderedHeight = maxWidth / aspectRatio;
+          }
+
+          if (renderedHeight > maxHeight) {
+            renderedHeight = maxHeight;
+            renderedWidth = maxHeight * aspectRatio;
+          }
+
+          estimatedHeight += renderedHeight;
+        } else {
+          estimatedHeight += 150;
+        }
+      }
+
+      if (message.content) {
+        const lines = Math.ceil(message.content.length / 40);
+        estimatedHeight += lines * 20;
+        if (message.media) {
+          estimatedHeight += 8;
+        }
+      }
+
+      return estimatedHeight;
+    };
+  }, [messages, currentUserEmail]);
 
   const virtualizer = useVirtualizer({
     count: messages?.length ?? 0,
@@ -116,6 +123,10 @@ export const ChatWindow = ({
     estimateSize,
     overscan: 5,
   });
+
+  useEffect(() => {
+    virtualizer.measure();
+  }, [messages, currentUserEmail, virtualizer]);
 
   useEffect(() => {
     messages.forEach((message) => {
@@ -284,6 +295,17 @@ export const ChatWindow = ({
             const isFromCurrentUser = newMessage?.user === currentUserEmail;
             const shouldScroll =
               isFromCurrentUser || shouldAutoScrollRef.current;
+
+            virtualizer.measure();
+
+            setTimeout(() => {
+              const lastIndex = messages.length - 1;
+              const element = itemRefs.current.get(lastIndex);
+              if (element) {
+                virtualizer.measureElement(element);
+              }
+              virtualizer.measure();
+            }, 0);
 
             if (shouldScroll) {
               setTimeout(() => {

@@ -1,4 +1,4 @@
-import { useState, useRef, ChangeEvent, KeyboardEvent } from "react";
+import { useState, useRef, ChangeEvent, KeyboardEvent, DragEvent } from "react";
 import { Box, TextField, IconButton, Paper, Tooltip } from "@mui/material";
 import { Send, ImagePlus, X } from "lucide-react";
 
@@ -15,6 +15,8 @@ export const MessageInput = ({
 }: MessageInputProps) => {
   const [message, setMessage] = useState("");
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [_dragCounter, setDragCounter] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSend = () => {
@@ -38,14 +40,20 @@ export const MessageInput = ({
     }
   };
 
-  const handleImageSelect = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const processImageFile = (file: File) => {
     if (file && file.type.startsWith("image/")) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setMediaPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleImageSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processImageFile(file);
     }
   };
 
@@ -56,19 +64,67 @@ export const MessageInput = ({
     }
   };
 
+  const handleDragEnter = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isPending) {
+      setDragCounter((prev) => prev + 1);
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragLeave = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragCounter((prev) => {
+      const newCounter = prev - 1;
+      if (newCounter === 0) {
+        setIsDragging(false);
+      }
+      return newCounter;
+    });
+  };
+
+  const handleDrop = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    setDragCounter(0);
+
+    if (isPending) return;
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      processImageFile(file);
+    }
+  };
+
   const remaining = MAX_MESSAGE_LENGTH - message.length;
   const isOverLimit = remaining < 0;
 
   return (
     <Paper
       elevation={3}
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
       sx={{
         position: "sticky",
         bottom: 0,
-        backgroundColor: "background.paper",
+        backgroundColor: isDragging ? "action.hover" : "background.paper",
         borderTop: 1,
-        borderColor: "divider",
+        borderColor: isDragging ? "primary.main" : "divider",
+        borderWidth: isDragging ? 2 : 1,
+        borderStyle: "solid",
         p: 2,
+        transition: "all 0.2s ease-in-out",
       }}
     >
       {mediaPreview && (
