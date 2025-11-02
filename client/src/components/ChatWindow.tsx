@@ -18,6 +18,8 @@ export const ChatWindow = ({
   currentUserEmail,
 }: ChatWindowProps) => {
   const parentRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScrollRef = useRef(true);
+  const previousMessageCountRef = useRef(0);
 
   const virtualizer = useVirtualizer({
     count: messages?.length ?? 0,
@@ -26,15 +28,59 @@ export const ChatWindow = ({
     overscan: 5,
   });
 
+  const isSameDay = (date1: Date, date2: Date) => {
+    return (
+      date1.getFullYear() === date2.getFullYear() &&
+      date1.getMonth() === date2.getMonth() &&
+      date1.getDate() === date2.getDate()
+    );
+  };
+
+  const shouldShowDateHeader = (currentIndex: number): boolean => {
+    if (currentIndex === 0) return true;
+
+    const currentMessage = messages[currentIndex];
+    const previousMessage = messages[currentIndex - 1];
+
+    return !isSameDay(
+      new Date(currentMessage.timestamp),
+      new Date(previousMessage.timestamp)
+    );
+  };
+
   useEffect(() => {
     if (messages && messages.length > 0 && parentRef.current) {
-      setTimeout(() => {
-        if (parentRef.current) {
-          parentRef.current.scrollTop = parentRef.current.scrollHeight;
-        }
-      }, 100);
+      const messageCountChanged =
+        messages.length !== previousMessageCountRef.current;
+
+      if (messageCountChanged) {
+        previousMessageCountRef.current = messages.length;
+
+        setTimeout(() => {
+          if (parentRef.current && shouldAutoScrollRef.current) {
+            parentRef.current.scrollTo({
+              top: parentRef.current.scrollHeight,
+              behavior: "smooth",
+            });
+          }
+        }, 100);
+      }
     }
   }, [messages]);
+
+  useEffect(() => {
+    const scrollElement = parentRef.current;
+    if (!scrollElement) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollElement;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+      shouldAutoScrollRef.current = isAtBottom;
+    };
+
+    scrollElement.addEventListener("scroll", handleScroll);
+    return () => scrollElement.removeEventListener("scroll", handleScroll);
+  }, []);
 
   if (isLoading) {
     return (
@@ -96,12 +142,11 @@ export const ChatWindow = ({
         {virtualizer.getVirtualItems().map((virtualItem) => {
           const message = messages[virtualItem.index];
           const isCurrentUser = message.user === currentUserEmail;
+          const showDateHeader = shouldShowDateHeader(virtualItem.index);
 
           return (
             <div
               key={virtualItem.key}
-              data-index={virtualItem.index}
-              ref={virtualizer.measureElement}
               style={{
                 position: "absolute",
                 top: 0,
@@ -110,7 +155,11 @@ export const ChatWindow = ({
                 transform: `translateY(${virtualItem.start}px)`,
               }}
             >
-              <MessageBubble message={message} isCurrentUser={isCurrentUser} />
+              <MessageBubble
+                message={message}
+                isCurrentUser={isCurrentUser}
+                showDateHeader={showDateHeader}
+              />
             </div>
           );
         })}

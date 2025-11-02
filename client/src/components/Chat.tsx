@@ -1,15 +1,20 @@
 import { Box, AppBar, Toolbar, Typography } from "@mui/material";
-import { MessagesSquare } from "lucide-react";
 import { ChatWindow } from "@/components/ChatWindow";
 import { MessageInput } from "@/components//MessageInput";
-import { useMessages } from "@/hooks/useMessages";
-import { useSendMessage } from "@/hooks/useSendMessage";
+import { useMessages, useSendMessage } from "@/hooks/useMessages";
 import { useUser } from "@/hooks/useUser";
 
 export const Chat = () => {
   const { data: messages = [], isLoading, error } = useMessages();
   const { mutate: sendMessage, isPending } = useSendMessage();
   const { user } = useUser();
+
+  const handleSendMessage = (newMessage: {
+    content: string;
+    media?: string;
+  }) => {
+    sendMessage(newMessage);
+  };
 
   return (
     <Box
@@ -18,19 +23,21 @@ export const Chat = () => {
         width: "100vw",
         display: "flex",
         flexDirection: "column",
-        backgroundColor: "background.default",
+        overflow: "hidden",
       }}
     >
       <AppBar position="static" elevation={1}>
         <Toolbar>
-          <MessagesSquare size={24} style={{ marginRight: 12 }} />
-          <Typography variant="h6" component="div">
-            Global Chat Room
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Group Chat
+          </Typography>
+          <Typography variant="body2" sx={{ opacity: 0.8 }}>
+            {user.name}
           </Typography>
         </Toolbar>
       </AppBar>
 
-      <Box sx={{ flex: 1, overflow: "hidden" }}>
+      <Box sx={{ flexGrow: 1, overflow: "hidden" }}>
         <ChatWindow
           messages={messages}
           isLoading={isLoading}
@@ -39,7 +46,7 @@ export const Chat = () => {
         />
       </Box>
 
-      <MessageInput onSend={sendMessage} isPending={isPending} />
+      <MessageInput onSend={handleSendMessage} isPending={isPending} />
     </Box>
   );
 };

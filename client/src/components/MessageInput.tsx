@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { Box, TextField, IconButton, Paper } from "@mui/material";
-import { Send } from "lucide-react";
+import { useState, useRef } from "react";
+import { Box, TextField, IconButton, Paper, Tooltip } from "@mui/material";
+import { Send, ImagePlus, X } from "lucide-react";
 
 const MAX_MESSAGE_LENGTH = 200;
 
@@ -14,11 +14,20 @@ export const MessageInput = ({
   isPending = false,
 }: MessageInputProps) => {
   const [message, setMessage] = useState("");
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSend = () => {
-    if (message.trim() && message.length <= MAX_MESSAGE_LENGTH) {
-      onSend({ content: message.trim() });
+    if (
+      (message.trim() || mediaPreview) &&
+      message.length <= MAX_MESSAGE_LENGTH
+    ) {
+      onSend({
+        content: message.trim(),
+        media: mediaPreview || undefined,
+      });
       setMessage("");
+      setMediaPreview(null);
     }
   };
 
@@ -26,6 +35,24 @@ export const MessageInput = ({
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setMediaPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setMediaPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -44,7 +71,64 @@ export const MessageInput = ({
         p: 2,
       }}
     >
-      <Box sx={{ display: "flex", gap: 1, alignItems: "flex-end" }}>
+      {mediaPreview && (
+        <Box
+          sx={{
+            mb: 2,
+            position: "relative",
+            display: "inline-block",
+          }}
+        >
+          <Box
+            component="img"
+            src={mediaPreview}
+            alt="Preview"
+            sx={{
+              maxWidth: 200,
+              maxHeight: 150,
+              borderRadius: 2,
+              objectFit: "cover",
+            }}
+          />
+          <IconButton
+            size="small"
+            onClick={handleRemoveImage}
+            sx={{
+              position: "absolute",
+              top: -8,
+              right: -8,
+              backgroundColor: "error.main",
+              color: "white",
+              "&:hover": {
+                backgroundColor: "error.dark",
+              },
+            }}
+          >
+            <X size={16} />
+          </IconButton>
+        </Box>
+      )}
+
+      <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: "none" }}
+          onChange={handleImageSelect}
+        />
+        <Tooltip title="Add image">
+          <IconButton
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isPending}
+            sx={{
+              color: "primary.main",
+            }}
+          >
+            <ImagePlus size={24} />
+          </IconButton>
+        </Tooltip>
+
         <TextField
           fullWidth
           multiline
@@ -68,10 +152,13 @@ export const MessageInput = ({
             },
           }}
         />
+
         <IconButton
           color="primary"
           onClick={handleSend}
-          disabled={!message.trim() || isOverLimit || isPending}
+          disabled={
+            (!message.trim() && !mediaPreview) || isOverLimit || isPending
+          }
           sx={{
             backgroundColor: "primary.main",
             color: "white",
@@ -80,8 +167,13 @@ export const MessageInput = ({
             },
             "&.Mui-disabled": {
               backgroundColor: "action.disabledBackground",
+              color: "action.disabled",
             },
-            mb: 2.5,
+            height: 40,
+            width: 40,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
           <Send size={20} />
