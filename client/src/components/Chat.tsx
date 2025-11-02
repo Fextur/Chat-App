@@ -5,7 +5,14 @@ import { useMessages, useSendMessage } from "@/hooks/useMessages";
 import { useUser } from "@/hooks/useUser";
 
 export const Chat = () => {
-  const { data: messages = [], isLoading, error } = useMessages();
+  const {
+    data: messages = [],
+    isLoading,
+    error,
+    hasMore,
+    isLoadingMore,
+    loadMoreMessages,
+  } = useMessages();
   const { mutate: sendMessage, isPending } = useSendMessage();
   const { user } = useUser();
 
@@ -43,6 +50,9 @@ export const Chat = () => {
           isLoading={isLoading}
           error={error}
           currentUserEmail={user.email}
+          hasMore={hasMore}
+          isLoadingMore={isLoadingMore}
+          onLoadMore={loadMoreMessages}
         />
       </Box>
 

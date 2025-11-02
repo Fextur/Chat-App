@@ -1,6 +1,7 @@
+import { useState, useEffect, useCallback } from "react";
 import { useUser } from "@/hooks/useUser";
 import { Message } from "@/types";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const generateMockMessages = (): Message[] => {
   const now = new Date();
@@ -60,7 +61,6 @@ const generateMockMessages = (): Message[] => {
       content: "Im in! What movie are we watching?",
       timestamp: new Date(twoDaysAgo.setHours(18, 5, 0, 0)),
     },
-    // Yesterday's messages
     {
       id: "9",
       user: "john@example.com",
@@ -116,7 +116,6 @@ const generateMockMessages = (): Message[] => {
       content: "Yes, Im free tomorrow afternoon",
       timestamp: new Date(yesterday.setHours(15, 10, 0, 0)),
     },
-    // Today's messages
     {
       id: "18",
       user: "jane@example.com",
@@ -195,21 +194,225 @@ const generateMockMessages = (): Message[] => {
       content: "Looking forward to it!",
       timestamp: new Date(now.setHours(11, 15, 0, 0)),
     },
+    {
+      id: "31",
+      user: "john@example.com",
+      content: "Great! See you all at noon then",
+      timestamp: new Date(now.setHours(11, 20, 0, 0)),
+    },
+    {
+      id: "32",
+      user: "jane@example.com",
+      content: "Perfect timing!",
+      timestamp: new Date(now.setHours(11, 25, 0, 0)),
+    },
+    {
+      id: "33",
+      user: "bob@example.com",
+      content: "Looking forward to catching up with everyone",
+      timestamp: new Date(now.setHours(11, 30, 0, 0)),
+    },
+    {
+      id: "34",
+      user: "alice@example.com",
+      content: "Me too! It's been a while since we all got together",
+      timestamp: new Date(now.setHours(11, 35, 0, 0)),
+    },
+    {
+      id: "35",
+      user: "john@example.com",
+      content: "Absolutely! We should do this more often",
+      timestamp: new Date(now.setHours(11, 40, 0, 0)),
+    },
+    {
+      id: "36",
+      user: "jane@example.com",
+      content: "Agreed! Team building is important",
+      timestamp: new Date(now.setHours(11, 45, 0, 0)),
+    },
+    {
+      id: "37",
+      user: "bob@example.com",
+      content: "Couldn't agree more!",
+      timestamp: new Date(now.setHours(11, 50, 0, 0)),
+    },
+    {
+      id: "38",
+      user: "alice@example.com",
+      content: "Well said, Bob!",
+      timestamp: new Date(now.setHours(11, 55, 0, 0)),
+    },
+    {
+      id: "39",
+      user: "john@example.com",
+      content:
+        "Quick question before we break - anyone have updates on the project?",
+      timestamp: new Date(now.setHours(12, 0, 0, 0)),
+    },
+    {
+      id: "40",
+      user: "jane@example.com",
+      content: "Yes! I finished the frontend work yesterday",
+      timestamp: new Date(now.setHours(12, 5, 0, 0)),
+    },
+    {
+      id: "41",
+      user: "bob@example.com",
+      content: "Backend is 90% done, should finish today",
+      timestamp: new Date(now.setHours(12, 10, 0, 0)),
+    },
+    {
+      id: "42",
+      user: "alice@example.com",
+      content: "Design mockups are ready for review",
+      timestamp: new Date(now.setHours(12, 15, 0, 0)),
+    },
+    {
+      id: "43",
+      user: "john@example.com",
+      content: "Excellent progress everyone! 🎉",
+      timestamp: new Date(now.setHours(12, 20, 0, 0)),
+    },
+    {
+      id: "44",
+      user: "jane@example.com",
+      content: "Thanks John! Really excited about this project",
+      timestamp: new Date(now.setHours(12, 25, 0, 0)),
+    },
+    {
+      id: "45",
+      user: "bob@example.com",
+      content: "Same here! Can't wait to see it live",
+      timestamp: new Date(now.setHours(12, 30, 0, 0)),
+    },
+    {
+      id: "46",
+      user: "alice@example.com",
+      content: "The team has been doing amazing work!",
+      timestamp: new Date(now.setHours(12, 35, 0, 0)),
+    },
+    {
+      id: "47",
+      user: "john@example.com",
+      content: "Couldn't have said it better myself",
+      timestamp: new Date(now.setHours(12, 40, 0, 0)),
+    },
+    {
+      id: "48",
+      user: "jane@example.com",
+      content: "Alright, time for lunch! 🍽️",
+      timestamp: new Date(now.setHours(12, 45, 0, 0)),
+    },
+    {
+      id: "49",
+      user: "bob@example.com",
+      content: "On my way!",
+      timestamp: new Date(now.setHours(12, 50, 0, 0)),
+    },
+    {
+      id: "50",
+      user: "alice@example.com",
+      content: "See you there!",
+      timestamp: new Date(now.setHours(12, 55, 0, 0)),
+    },
   ];
 };
 
 let mockData: Message[] = generateMockMessages();
 
-const fetchMessages = async (): Promise<Message[]> => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  return mockData;
-};
+const sortedMockData = [...mockData].sort(
+  (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+);
+
+const MESSAGES_PER_PAGE = 10;
 
 export const useMessages = () => {
-  return useQuery({
-    queryKey: ["messages"],
-    queryFn: fetchMessages,
-  });
+  const [allMessages, setAllMessages] = useState<Message[]>([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [oldestLoadedIndex, setOldestLoadedIndex] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+  useEffect(() => {
+    const loadInitialMessages = async () => {
+      setIsInitialLoading(true);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const total = sortedMockData.length;
+      const startIndex = Math.max(0, total - MESSAGES_PER_PAGE);
+      const initialMessages = sortedMockData.slice(startIndex);
+
+      setAllMessages(initialMessages);
+      setOldestLoadedIndex(startIndex);
+      setHasMore(startIndex > 0);
+      setIsInitialLoading(false);
+    };
+
+    loadInitialMessages();
+  }, []);
+
+  const loadMoreMessages = useCallback(async () => {
+    if (isLoadingMore || !hasMore) return;
+
+    setIsLoadingMore(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const newStartIndex = Math.max(0, oldestLoadedIndex - MESSAGES_PER_PAGE);
+      const olderMessages = sortedMockData.slice(
+        newStartIndex,
+        oldestLoadedIndex
+      );
+
+      setAllMessages((prev) => [...olderMessages, ...prev]);
+      setOldestLoadedIndex(newStartIndex);
+      setHasMore(newStartIndex > 0);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [oldestLoadedIndex, hasMore, isLoadingMore]);
+
+  const appendMessage = useCallback(
+    (message: Message) => {
+      setAllMessages((prev) => {
+        if (prev.some((m) => m.id === message.id)) {
+          return prev;
+        }
+        return [...prev, message];
+      });
+      const total = sortedMockData.length;
+      const lastIndex = sortedMockData.length - 1;
+      if (oldestLoadedIndex >= lastIndex - MESSAGES_PER_PAGE) {
+        setOldestLoadedIndex(Math.max(0, total - MESSAGES_PER_PAGE));
+      }
+    },
+    [oldestLoadedIndex]
+  );
+
+  useEffect(() => {
+    setAppendMessageCallback(appendMessage);
+    return () => {
+      setAppendMessageCallback(() => {});
+    };
+  }, [appendMessage]);
+
+  return {
+    data: allMessages,
+    isLoading: isInitialLoading,
+    error: null,
+    hasMore,
+    isLoadingMore,
+    loadMoreMessages,
+    appendMessage,
+  };
+};
+
+let appendMessageCallback: ((message: Message) => void) | null = null;
+
+export const setAppendMessageCallback = (
+  callback: (message: Message) => void
+) => {
+  appendMessageCallback = callback;
 };
 
 export const useSendMessage = () => {
@@ -231,6 +434,16 @@ export const useSendMessage = () => {
     };
 
     mockData = [...mockData, message];
+    sortedMockData.push(message);
+    sortedMockData.sort(
+      (a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+
+    if (appendMessageCallback) {
+      appendMessageCallback(message);
+    }
+
     return message;
   };
   return useMutation({
