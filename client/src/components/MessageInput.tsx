@@ -5,7 +5,7 @@ import { Send, ImagePlus, X } from "lucide-react";
 const MAX_MESSAGE_LENGTH = 200;
 
 interface MessageInputProps {
-  onSend: (message: { content: string; media?: string }) => void;
+  onSend: (message: { content?: string; media?: string }) => void;
   isPending?: boolean;
 }
 
@@ -23,7 +23,7 @@ export const MessageInput = ({
       message.length <= MAX_MESSAGE_LENGTH
     ) {
       onSend({
-        content: message.trim(),
+        content: message.trim() || undefined,
         media: mediaPreview || undefined,
       });
       setMessage("");

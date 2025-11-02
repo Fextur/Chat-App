@@ -17,7 +17,7 @@ export const Chat = () => {
   const { user } = useUser();
 
   const handleSendMessage = (newMessage: {
-    content: string;
+    content?: string;
     media?: string;
   }) => {
     sendMessage(newMessage);

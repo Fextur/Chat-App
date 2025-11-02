@@ -38,6 +38,13 @@ const generateMockMessages = (): Message[] => {
       timestamp: new Date(twoDaysAgo.setHours(14, 30, 0, 0)),
     },
     {
+      id: "4a",
+      user: "jane@example.com",
+      media:
+        "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=300&fit=crop",
+      timestamp: new Date(twoDaysAgo.setHours(14, 32, 0, 0)),
+    },
+    {
       id: "5",
       user: "john@example.com",
       content: "Wow, thats beautiful! Where was this taken?",
@@ -93,6 +100,13 @@ const generateMockMessages = (): Message[] => {
       timestamp: new Date(yesterday.setHours(13, 20, 0, 0)),
     },
     {
+      id: "13a",
+      user: "bob@example.com",
+      media:
+        "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=300&fit=crop",
+      timestamp: new Date(yesterday.setHours(13, 22, 0, 0)),
+    },
+    {
       id: "14",
       user: "john@example.com",
       content: "This looks fantastic! Great work!",
@@ -139,6 +153,13 @@ const generateMockMessages = (): Message[] => {
       user: "alice@example.com",
       content: "Just finished my coffee ☕",
       timestamp: new Date(now.setHours(9, 0, 0, 0)),
+    },
+    {
+      id: "21a",
+      user: "john@example.com",
+      media:
+        "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=400&h=300&fit=crop",
+      timestamp: new Date(now.setHours(9, 5, 0, 0)),
     },
     {
       id: "22",
@@ -420,7 +441,7 @@ export const useSendMessage = () => {
   const { user } = useUser();
 
   const sendMessage = async (newMessage: {
-    content: string;
+    content?: string;
     media?: string;
   }): Promise<Message> => {
     await new Promise((resolve) => setTimeout(resolve, 300));
