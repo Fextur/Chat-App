@@ -15,7 +15,7 @@ export const MessageBubble = ({
 }: MessageBubbleProps) => {
   const userColor = isCurrentUser
     ? null
-    : getUserColor(message.user);
+    : getUserColor(message.user.email);
 
   const formatDateHeader = (date: Date) => {
     const today = new Date();
@@ -89,7 +89,7 @@ export const MessageBubble = ({
                 textAlign: "left",
               }}
             >
-              {message.user}
+              {message.user.name}
             </Typography>
           )}
 

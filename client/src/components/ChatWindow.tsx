@@ -66,7 +66,7 @@ export const ChatWindow = ({
       const message = messages[index];
       if (!message) return 100;
 
-      const isCurrentUser = message.user === currentUserEmail;
+      const isCurrentUser = message.user.email === currentUserEmail;
       let estimatedHeight = 0;
 
       if (shouldShowDateHeader(index)) {
@@ -294,7 +294,8 @@ export const ChatWindow = ({
 
           if (messageAppended) {
             const newMessage = messages[messages.length - 1];
-            const isFromCurrentUser = newMessage?.user === currentUserEmail;
+            const isFromCurrentUser =
+              newMessage?.user.email === currentUserEmail;
             const shouldScroll =
               isFromCurrentUser || shouldAutoScrollRef.current;
 
@@ -486,7 +487,7 @@ export const ChatWindow = ({
       >
         {virtualizer.getVirtualItems().map((virtualItem) => {
           const message = messages[virtualItem.index];
-          const isCurrentUser = message.user === currentUserEmail;
+          const isCurrentUser = message.user.email === currentUserEmail;
           const showDateHeader = shouldShowDateHeader(virtualItem.index);
 
           return (

@@ -1,7 +1,21 @@
 import { useState, useEffect, useCallback } from "react";
 import { useUser } from "@/hooks/useUser";
-import { Message } from "@/types";
+import { Message, User } from "@/types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+
+const getUser = (email: string): User => {
+  const nameMap: Record<string, string> = {
+    "john@example.com": "John",
+    "jane@example.com": "Jane",
+    "bob@example.com": "Bob",
+    "alice@example.com": "Alice",
+    "you@example.com": "You",
+  };
+  return {
+    email,
+    name: nameMap[email] || email.split("@")[0],
+  };
+};
 
 const generateMockMessages = (): Message[] => {
   const now = new Date();
@@ -10,338 +24,105 @@ const generateMockMessages = (): Message[] => {
   const twoDaysAgo = new Date(now);
   twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
 
+  const createMessage = (
+    id: string,
+    userEmail: string,
+    content?: string,
+    media?: string,
+    timestamp?: Date
+  ): Message => ({
+    id,
+    user: getUser(userEmail),
+    content,
+    media,
+    timestamp: timestamp || new Date(),
+  });
+
   return [
-    {
-      id: "1",
-      user: "john@example.com",
-      content: "Hey everyone! Hows it going?",
-      timestamp: new Date(twoDaysAgo.setHours(9, 0, 0, 0)),
-    },
-    {
-      id: "2",
-      user: "jane@example.com",
-      content: "Hi John! Im doing great, thanks for asking!",
-      timestamp: new Date(twoDaysAgo.setHours(9, 5, 0, 0)),
-    },
-    {
-      id: "3",
-      user: "bob@example.com",
-      content: "Good morning everyone! 🌞",
-      timestamp: new Date(twoDaysAgo.setHours(9, 10, 0, 0)),
-    },
-    {
-      id: "4",
-      user: "alice@example.com",
-      content: "Check out this amazing sunset I captured!",
-      media:
-        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop",
-      timestamp: new Date(twoDaysAgo.setHours(14, 30, 0, 0)),
-    },
-    {
-      id: "4a",
-      user: "jane@example.com",
-      media:
-        "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=300&fit=crop",
-      timestamp: new Date(twoDaysAgo.setHours(14, 32, 0, 0)),
-    },
-    {
-      id: "5",
-      user: "john@example.com",
-      content: "Wow, thats beautiful! Where was this taken?",
-      timestamp: new Date(twoDaysAgo.setHours(14, 35, 0, 0)),
-    },
-    {
-      id: "6",
-      user: "alice@example.com",
-      content: "Thanks! It was at the beach near Santa Monica",
-      timestamp: new Date(twoDaysAgo.setHours(14, 40, 0, 0)),
-    },
-    {
-      id: "7",
-      user: "jane@example.com",
-      content: "Good evening! Anyone up for a movie tonight?",
-      timestamp: new Date(twoDaysAgo.setHours(18, 0, 0, 0)),
-    },
-    {
-      id: "8",
-      user: "bob@example.com",
-      content: "Im in! What movie are we watching?",
-      timestamp: new Date(twoDaysAgo.setHours(18, 5, 0, 0)),
-    },
-    {
-      id: "9",
-      user: "john@example.com",
-      content: "Good morning team!",
-      timestamp: new Date(yesterday.setHours(8, 0, 0, 0)),
-    },
-    {
-      id: "10",
-      user: "alice@example.com",
-      content: "Morning John! Ready for the presentation?",
-      timestamp: new Date(yesterday.setHours(8, 15, 0, 0)),
-    },
-    {
-      id: "11",
-      user: "jane@example.com",
-      content: "I have some ideas Id like to share",
-      timestamp: new Date(yesterday.setHours(10, 30, 0, 0)),
-    },
-    {
-      id: "12",
-      user: "bob@example.com",
-      content: "Lets hear them!",
-      timestamp: new Date(yesterday.setHours(10, 35, 0, 0)),
-    },
-    {
-      id: "13",
-      user: "alice@example.com",
-      content: "Heres the mockup Ive been working on",
-      media: "https://static.thenounproject.com/png/4778723-200.png",
-      timestamp: new Date(yesterday.setHours(13, 20, 0, 0)),
-    },
-    {
-      id: "13a",
-      user: "bob@example.com",
-      media:
-        "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=300&fit=crop",
-      timestamp: new Date(yesterday.setHours(13, 22, 0, 0)),
-    },
-    {
-      id: "14",
-      user: "john@example.com",
-      content: "This looks fantastic! Great work!",
-      timestamp: new Date(yesterday.setHours(13, 25, 0, 0)),
-    },
-    {
-      id: "15",
-      user: "jane@example.com",
-      content: "I agree! The colors really pop",
-      timestamp: new Date(yesterday.setHours(13, 30, 0, 0)),
-    },
-    {
-      id: "16",
-      user: "bob@example.com",
-      content: "Should we schedule a meeting to discuss implementation?",
-      timestamp: new Date(yesterday.setHours(15, 0, 0, 0)),
-    },
-    {
-      id: "17",
-      user: "alice@example.com",
-      content: "Yes, Im free tomorrow afternoon",
-      timestamp: new Date(yesterday.setHours(15, 10, 0, 0)),
-    },
-    {
-      id: "18",
-      user: "jane@example.com",
-      content: "Good morning everyone! ☀️",
-      timestamp: new Date(now.setHours(7, 30, 0, 0)),
-    },
-    {
-      id: "19",
-      user: "john@example.com",
-      content: "Morning! Ready for another productive day",
-      timestamp: new Date(now.setHours(8, 0, 0, 0)),
-    },
-    {
-      id: "20",
-      user: "bob@example.com",
-      content: "Hey everyone!",
-      timestamp: new Date(now.setHours(8, 15, 0, 0)),
-    },
-    {
-      id: "21",
-      user: "alice@example.com",
-      content: "Just finished my coffee ☕",
-      timestamp: new Date(now.setHours(9, 0, 0, 0)),
-    },
-    {
-      id: "21a",
-      user: "john@example.com",
-      media:
-        "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=400&h=300&fit=crop",
-      timestamp: new Date(now.setHours(9, 5, 0, 0)),
-    },
-    {
-      id: "22",
-      user: "jane@example.com",
-      content: "Anyone need help with anything today?",
-      timestamp: new Date(now.setHours(9, 30, 0, 0)),
-    },
-    {
-      id: "23",
-      user: "john@example.com",
-      content: "I could use some feedback on the new feature",
-      timestamp: new Date(now.setHours(10, 0, 0, 0)),
-    },
-    {
-      id: "24",
-      user: "bob@example.com",
-      content: "Sure! Send it over",
-      timestamp: new Date(now.setHours(10, 5, 0, 0)),
-    },
-    {
-      id: "25",
-      user: "alice@example.com",
-      content: "Im happy to review it as well",
-      timestamp: new Date(now.setHours(10, 10, 0, 0)),
-    },
-    {
-      id: "26",
-      user: "jane@example.com",
-      content: "Team lunch at noon?",
-      timestamp: new Date(now.setHours(11, 0, 0, 0)),
-    },
-    {
-      id: "27",
-      user: "john@example.com",
-      content: "Count me in!",
-      timestamp: new Date(now.setHours(11, 2, 0, 0)),
-    },
-    {
-      id: "28",
-      user: "bob@example.com",
-      content: "Sounds good to me",
-      timestamp: new Date(now.setHours(11, 5, 0, 0)),
-    },
-    {
-      id: "29",
-      user: "alice@example.com",
-      content: "Perfect! See you all then 🍕",
-      timestamp: new Date(now.setHours(11, 10, 0, 0)),
-    },
-    {
-      id: "30",
-      user: "you@example.com",
-      content: "Looking forward to it!",
-      timestamp: new Date(now.setHours(11, 15, 0, 0)),
-    },
-    {
-      id: "31",
-      user: "john@example.com",
-      content: "Great! See you all at noon then",
-      timestamp: new Date(now.setHours(11, 20, 0, 0)),
-    },
-    {
-      id: "32",
-      user: "jane@example.com",
-      content: "Perfect timing!",
-      timestamp: new Date(now.setHours(11, 25, 0, 0)),
-    },
-    {
-      id: "33",
-      user: "bob@example.com",
-      content: "Looking forward to catching up with everyone",
-      timestamp: new Date(now.setHours(11, 30, 0, 0)),
-    },
-    {
-      id: "34",
-      user: "alice@example.com",
-      content: "Me too! It's been a while since we all got together",
-      timestamp: new Date(now.setHours(11, 35, 0, 0)),
-    },
-    {
-      id: "35",
-      user: "john@example.com",
-      content: "Absolutely! We should do this more often",
-      timestamp: new Date(now.setHours(11, 40, 0, 0)),
-    },
-    {
-      id: "36",
-      user: "jane@example.com",
-      content: "Agreed! Team building is important",
-      timestamp: new Date(now.setHours(11, 45, 0, 0)),
-    },
-    {
-      id: "37",
-      user: "bob@example.com",
-      content: "Couldn't agree more!",
-      timestamp: new Date(now.setHours(11, 50, 0, 0)),
-    },
-    {
-      id: "38",
-      user: "alice@example.com",
-      content: "Well said, Bob!",
-      timestamp: new Date(now.setHours(11, 55, 0, 0)),
-    },
-    {
-      id: "39",
-      user: "john@example.com",
-      content:
-        "Quick question before we break - anyone have updates on the project?",
-      timestamp: new Date(now.setHours(12, 0, 0, 0)),
-    },
-    {
-      id: "40",
-      user: "jane@example.com",
-      content: "Yes! I finished the frontend work yesterday",
-      timestamp: new Date(now.setHours(12, 5, 0, 0)),
-    },
-    {
-      id: "41",
-      user: "bob@example.com",
-      content: "Backend is 90% done, should finish today",
-      timestamp: new Date(now.setHours(12, 10, 0, 0)),
-    },
-    {
-      id: "42",
-      user: "alice@example.com",
-      content: "Design mockups are ready for review",
-      timestamp: new Date(now.setHours(12, 15, 0, 0)),
-    },
-    {
-      id: "43",
-      user: "john@example.com",
-      content: "Excellent progress everyone! 🎉",
-      timestamp: new Date(now.setHours(12, 20, 0, 0)),
-    },
-    {
-      id: "44",
-      user: "bob@example.com",
-      content: "Thanks John! Really excited about this project",
-      timestamp: new Date(now.setHours(12, 25, 0, 0)),
-    },
-    {
-      id: "45",
-      user: "bob@example.com",
-      content: "Same here! Can't wait to see it live",
-      timestamp: new Date(now.setHours(12, 30, 0, 0)),
-    },
-    {
-      id: "46",
-      user: "alice@example.com",
-      content: "The team has been doing amazing work!",
-      timestamp: new Date(now.setHours(12, 35, 0, 0)),
-    },
-    {
-      id: "47",
-      user: "bob@example.com",
-      content: "Couldn't have said it better myself",
-      timestamp: new Date(now.setHours(12, 40, 0, 0)),
-    },
-    {
-      id: "48",
-      user: "bob@example.com",
-      content: "Alright, time for lunch! 🍽️",
-      timestamp: new Date(now.setHours(12, 45, 0, 0)),
-    },
-    {
-      id: "49",
-      user: "bob@example.com",
-      content: "On my way!",
-      timestamp: new Date(now.setHours(12, 50, 0, 0)),
-    },
-    {
-      id: "50",
-      user: "alice@example.com",
-      content: "See you there!",
-      timestamp: new Date(now.setHours(12, 55, 0, 0)),
-    },
-    {
-      id: "51",
-      user: "alice@example.com",
-      content: "See you there!",
-      timestamp: new Date(now.setHours(12, 55, 0, 0)),
-    },
+    createMessage(
+      "1",
+      "john@example.com",
+      "Hey everyone! Hows it going?",
+      undefined,
+      new Date(twoDaysAgo.setHours(9, 0, 0, 0))
+    ),
+    createMessage(
+      "2",
+      "jane@example.com",
+      "Hi John! Im doing great, thanks for asking!",
+      undefined,
+      new Date(twoDaysAgo.setHours(9, 5, 0, 0))
+    ),
+    createMessage(
+      "3",
+      "bob@example.com",
+      "Good morning everyone! 🌞",
+      undefined,
+      new Date(twoDaysAgo.setHours(9, 10, 0, 0))
+    ),
+    createMessage(
+      "4",
+      "alice@example.com",
+      "Check out this amazing sunset I captured!",
+      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop",
+      new Date(twoDaysAgo.setHours(14, 30, 0, 0))
+    ),
+    createMessage(
+      "4a",
+      "jane@example.com",
+      undefined,
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=300&fit=crop",
+      new Date(twoDaysAgo.setHours(14, 32, 0, 0))
+    ),
+    createMessage("5", "john@example.com", "Wow, thats beautiful! Where was this taken?", undefined, new Date(twoDaysAgo.setHours(14, 35, 0, 0))),
+    createMessage("6", "alice@example.com", "Thanks! It was at the beach near Santa Monica", undefined, new Date(twoDaysAgo.setHours(14, 40, 0, 0))),
+    createMessage("7", "jane@example.com", "Good evening! Anyone up for a movie tonight?", undefined, new Date(twoDaysAgo.setHours(18, 0, 0, 0))),
+    createMessage("8", "bob@example.com", "Im in! What movie are we watching?", undefined, new Date(twoDaysAgo.setHours(18, 5, 0, 0))),
+    createMessage("9", "john@example.com", "Good morning team!", undefined, new Date(yesterday.setHours(8, 0, 0, 0))),
+    createMessage("10", "alice@example.com", "Morning John! Ready for the presentation?", undefined, new Date(yesterday.setHours(8, 15, 0, 0))),
+    createMessage("11", "jane@example.com", "I have some ideas Id like to share", undefined, new Date(yesterday.setHours(10, 30, 0, 0))),
+    createMessage("12", "bob@example.com", "Lets hear them!", undefined, new Date(yesterday.setHours(10, 35, 0, 0))),
+    createMessage("13", "alice@example.com", "Heres the mockup Ive been working on", "https://static.thenounproject.com/png/4778723-200.png", new Date(yesterday.setHours(13, 20, 0, 0))),
+    createMessage("13a", "bob@example.com", undefined, "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=300&fit=crop", new Date(yesterday.setHours(13, 22, 0, 0))),
+    createMessage("14", "john@example.com", "This looks fantastic! Great work!", undefined, new Date(yesterday.setHours(13, 25, 0, 0))),
+    createMessage("15", "jane@example.com", "I agree! The colors really pop", undefined, new Date(yesterday.setHours(13, 30, 0, 0))),
+    createMessage("16", "bob@example.com", "Should we schedule a meeting to discuss implementation?", undefined, new Date(yesterday.setHours(15, 0, 0, 0))),
+    createMessage("17", "alice@example.com", "Yes, Im free tomorrow afternoon", undefined, new Date(yesterday.setHours(15, 10, 0, 0))),
+    createMessage("18", "jane@example.com", "Good morning everyone! ☀️", undefined, new Date(now.setHours(7, 30, 0, 0))),
+    createMessage("19", "john@example.com", "Morning! Ready for another productive day", undefined, new Date(now.setHours(8, 0, 0, 0))),
+    createMessage("20", "bob@example.com", "Hey everyone!", undefined, new Date(now.setHours(8, 15, 0, 0))),
+    createMessage("21", "alice@example.com", "Just finished my coffee ☕", undefined, new Date(now.setHours(9, 0, 0, 0))),
+    createMessage("21a", "john@example.com", undefined, "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=400&h=300&fit=crop", new Date(now.setHours(9, 5, 0, 0))),
+    createMessage("22", "jane@example.com", "Anyone need help with anything today?", undefined, new Date(now.setHours(9, 30, 0, 0))),
+    createMessage("23", "john@example.com", "I could use some feedback on the new feature", undefined, new Date(now.setHours(10, 0, 0, 0))),
+    createMessage("24", "bob@example.com", "Sure! Send it over", undefined, new Date(now.setHours(10, 5, 0, 0))),
+    createMessage("25", "alice@example.com", "Im happy to review it as well", undefined, new Date(now.setHours(10, 10, 0, 0))),
+    createMessage("26", "jane@example.com", "Team lunch at noon?", undefined, new Date(now.setHours(11, 0, 0, 0))),
+    createMessage("27", "john@example.com", "Count me in!", undefined, new Date(now.setHours(11, 2, 0, 0))),
+    createMessage("28", "bob@example.com", "Sounds good to me", undefined, new Date(now.setHours(11, 5, 0, 0))),
+    createMessage("29", "alice@example.com", "Perfect! See you all then 🍕", undefined, new Date(now.setHours(11, 10, 0, 0))),
+    createMessage("30", "you@example.com", "Looking forward to it!", undefined, new Date(now.setHours(11, 15, 0, 0))),
+    createMessage("31", "john@example.com", "Great! See you all at noon then", undefined, new Date(now.setHours(11, 20, 0, 0))),
+    createMessage("32", "jane@example.com", "Perfect timing!", undefined, new Date(now.setHours(11, 25, 0, 0))),
+    createMessage("33", "bob@example.com", "Looking forward to catching up with everyone", undefined, new Date(now.setHours(11, 30, 0, 0))),
+    createMessage("34", "alice@example.com", "Me too! It's been a while since we all got together", undefined, new Date(now.setHours(11, 35, 0, 0))),
+    createMessage("35", "john@example.com", "Absolutely! We should do this more often", undefined, new Date(now.setHours(11, 40, 0, 0))),
+    createMessage("36", "jane@example.com", "Agreed! Team building is important", undefined, new Date(now.setHours(11, 45, 0, 0))),
+    createMessage("37", "bob@example.com", "Couldn't agree more!", undefined, new Date(now.setHours(11, 50, 0, 0))),
+    createMessage("38", "alice@example.com", "Well said, Bob!", undefined, new Date(now.setHours(11, 55, 0, 0))),
+    createMessage("39", "john@example.com", "Quick question before we break - anyone have updates on the project?", undefined, new Date(now.setHours(12, 0, 0, 0))),
+    createMessage("40", "jane@example.com", "Yes! I finished the frontend work yesterday", undefined, new Date(now.setHours(12, 5, 0, 0))),
+    createMessage("41", "bob@example.com", "Backend is 90% done, should finish today", undefined, new Date(now.setHours(12, 10, 0, 0))),
+    createMessage("42", "alice@example.com", "Design mockups are ready for review", undefined, new Date(now.setHours(12, 15, 0, 0))),
+    createMessage("43", "john@example.com", "Excellent progress everyone! 🎉", undefined, new Date(now.setHours(12, 20, 0, 0))),
+    createMessage("44", "bob@example.com", "Thanks John! Really excited about this project", undefined, new Date(now.setHours(12, 25, 0, 0))),
+    createMessage("45", "bob@example.com", "Same here! Can't wait to see it live", undefined, new Date(now.setHours(12, 30, 0, 0))),
+    createMessage("46", "alice@example.com", "The team has been doing amazing work!", undefined, new Date(now.setHours(12, 35, 0, 0))),
+    createMessage("47", "bob@example.com", "Couldn't have said it better myself", undefined, new Date(now.setHours(12, 40, 0, 0))),
+    createMessage("48", "bob@example.com", "Alright, time for lunch! 🍽️", undefined, new Date(now.setHours(12, 45, 0, 0))),
+    createMessage("49", "bob@example.com", "On my way!", undefined, new Date(now.setHours(12, 50, 0, 0))),
+    createMessage("50", "alice@example.com", "See you there!", undefined, new Date(now.setHours(12, 55, 0, 0))),
+    createMessage("51", "alice@example.com", "See you there!", undefined, new Date(now.setHours(12, 55, 0, 0))),
   ];
 };
 
@@ -474,9 +255,16 @@ export const useSendMessage = () => {
   }): Promise<Message> => {
     await new Promise((resolve) => setTimeout(resolve, 300));
 
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+
     const message: Message = {
       id: Date.now().toString(),
-      user: user.email,
+      user: {
+        email: user.email,
+        name: user.name,
+      },
       content: newMessage.content,
       media: newMessage.media,
       timestamp: new Date(),
