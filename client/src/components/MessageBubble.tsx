@@ -1,5 +1,6 @@
 import { Box, Typography, Paper } from "@mui/material";
 import { Message } from "@/types";
+import { getUserColor } from "@/utils/colorUtils";
 
 interface MessageBubbleProps {
   message: Message;
@@ -12,6 +13,10 @@ export const MessageBubble = ({
   isCurrentUser,
   showDateHeader = false,
 }: MessageBubbleProps) => {
+  const userColor = isCurrentUser
+    ? null
+    : getUserColor(message.user);
+
   const formatDateHeader = (date: Date) => {
     const today = new Date();
     const yesterday = new Date(today);
@@ -92,8 +97,12 @@ export const MessageBubble = ({
             elevation={1}
             sx={{
               p: 1.5,
-              backgroundColor: isCurrentUser ? "#0084ff" : "#f0f0f0",
-              color: isCurrentUser ? "white" : "text.primary",
+              backgroundColor: isCurrentUser
+                ? "#0084ff"
+                : userColor?.background || "#f0f0f0",
+              color: isCurrentUser
+                ? "white"
+                : userColor?.textColor || "text.primary",
               borderRadius: 2.5,
               wordWrap: "break-word",
               overflowWrap: "break-word",

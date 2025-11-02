@@ -1,6 +1,6 @@
 import { Box, AppBar, Toolbar, Typography } from "@mui/material";
 import { ChatWindow } from "@/components/ChatWindow";
-import { MessageInput } from "@/components//MessageInput";
+import { MessageInput } from "@/components/MessageInput";
 import { useMessages, useSendMessage } from "@/hooks/useMessages";
 import { useUser } from "@/hooks/useUser";
 
