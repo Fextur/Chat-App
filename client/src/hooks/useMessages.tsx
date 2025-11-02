@@ -359,10 +359,13 @@ export const useMessages = () => {
   const [oldestLoadedIndex, setOldestLoadedIndex] = useState(0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [retryTrigger, setRetryTrigger] = useState(0);
 
-  useEffect(() => {
-    const loadInitialMessages = async () => {
-      setIsInitialLoading(true);
+  const loadInitialMessages = useCallback(async () => {
+    setIsInitialLoading(true);
+    setError(null);
+    try {
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       const total = sortedMockData.length;
@@ -372,16 +375,29 @@ export const useMessages = () => {
       setAllMessages(initialMessages);
       setOldestLoadedIndex(startIndex);
       setHasMore(startIndex > 0);
+    } catch (err) {
+      const error =
+        err instanceof Error ? err : new Error("Failed to load messages");
+      setError(error);
+      console.error("Error loading initial messages:", error);
+    } finally {
       setIsInitialLoading(false);
-    };
+    }
+  }, []);
 
+  useEffect(() => {
     loadInitialMessages();
+  }, [loadInitialMessages, retryTrigger]);
+
+  const retry = useCallback(() => {
+    setRetryTrigger((prev) => prev + 1);
   }, []);
 
   const loadMoreMessages = useCallback(async () => {
     if (isLoadingMore || !hasMore) return;
 
     setIsLoadingMore(true);
+    setError(null);
     try {
       await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -394,6 +410,11 @@ export const useMessages = () => {
       setAllMessages((prev) => [...olderMessages, ...prev]);
       setOldestLoadedIndex(newStartIndex);
       setHasMore(newStartIndex > 0);
+    } catch (err) {
+      const error =
+        err instanceof Error ? err : new Error("Failed to load more messages");
+      setError(error);
+      console.error("Error loading more messages:", error);
     } finally {
       setIsLoadingMore(false);
     }
@@ -426,11 +447,12 @@ export const useMessages = () => {
   return {
     data: allMessages,
     isLoading: isInitialLoading,
-    error: null,
+    error,
     hasMore,
     isLoadingMore,
     loadMoreMessages,
     appendMessage,
+    retry,
   };
 };
 

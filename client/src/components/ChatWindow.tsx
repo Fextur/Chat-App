@@ -1,5 +1,5 @@
 import { useRef, useEffect, useLayoutEffect, useMemo } from "react";
-import { Box, CircularProgress, Typography } from "@mui/material";
+import { Box, CircularProgress, Typography, Button } from "@mui/material";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Message } from "@/types";
 import { MessageBubble } from "@/components/MessageBubble";
@@ -12,6 +12,7 @@ interface ChatWindowProps {
   hasMore: boolean;
   isLoadingMore: boolean;
   onLoadMore: () => void;
+  onRetry?: () => void;
 }
 
 export const ChatWindow = ({
@@ -22,6 +23,7 @@ export const ChatWindow = ({
   hasMore,
   isLoadingMore,
   onLoadMore,
+  onRetry,
 }: ChatWindowProps) => {
   const parentRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -385,17 +387,26 @@ export const ChatWindow = ({
     );
   }
 
-  if (error) {
+  if (error && messages.length === 0) {
     return (
       <Box
         sx={{
           display: "flex",
+          flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
           height: "100%",
+          gap: 2,
         }}
       >
-        <Typography color="error">Failed to load messages</Typography>
+        <Typography color="error">
+          {error?.message || "Failed to load messages"}
+        </Typography>
+        {onRetry && (
+          <Button variant="contained" onClick={onRetry} disabled={isLoading}>
+            Retry
+          </Button>
+        )}
       </Box>
     );
   }
@@ -420,7 +431,36 @@ export const ChatWindow = ({
         },
       }}
     >
-      {isLoadingMore && (
+      {error && messages.length > 0 && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: 2,
+            zIndex: 1,
+            backgroundColor: "error.light",
+            gap: 2,
+          }}
+        >
+          <Typography color="error" variant="body2">
+            {error?.message || "Failed to load more messages"}
+          </Typography>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={onLoadMore}
+            disabled={isLoadingMore}
+          >
+            Retry
+          </Button>
+        </Box>
+      )}
+      {isLoadingMore && !error && (
         <Box
           sx={{
             position: "absolute",

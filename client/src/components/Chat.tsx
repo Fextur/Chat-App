@@ -12,6 +12,7 @@ export const Chat = () => {
     hasMore,
     isLoadingMore,
     loadMoreMessages,
+    retry,
   } = useMessages();
   const { mutate: sendMessage, isPending } = useSendMessage();
   const { user } = useUser();
@@ -53,6 +54,7 @@ export const Chat = () => {
           hasMore={hasMore}
           isLoadingMore={isLoadingMore}
           onLoadMore={loadMoreMessages}
+          onRetry={retry}
         />
       </Box>
 
