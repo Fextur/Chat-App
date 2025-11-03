@@ -146,7 +146,9 @@ export const MessageBubble = memo(
                           "[data-index]"
                         ) as HTMLElement;
                         if (container) {
-                          const event = new CustomEvent("imageLoaded");
+                          const event = new CustomEvent("imageLoaded", {
+                            bubbles: true,
+                          });
                           container.dispatchEvent(event);
                         }
                       });

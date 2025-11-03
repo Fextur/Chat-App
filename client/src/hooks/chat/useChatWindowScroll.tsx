@@ -36,6 +36,7 @@ export const useChatWindowScroll = ({
   const anchorMessageOffsetRef = useRef<number>(0);
   const previousScrollTopRef = useRef<number>(0);
   const hasInitialScrollCompletedRef = useRef(false);
+  const pendingScrollRef = useRef(false);
 
   useEffect(() => {
     if (!isLoadingMore) {
@@ -116,9 +117,29 @@ export const useChatWindowScroll = ({
           if (parentRef.current) {
             parentRef.current.scrollTop = parentRef.current.scrollHeight;
 
+            const initialScrollHeight = parentRef.current.scrollHeight;
+
+            const checkAndRescroll = () => {
+              if (parentRef.current && !hasInitialScrollCompletedRef.current) {
+                const currentScrollHeight = parentRef.current.scrollHeight;
+                if (currentScrollHeight > initialScrollHeight) {
+                  requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                      if (parentRef.current) {
+                        parentRef.current.scrollTop = parentRef.current.scrollHeight;
+                      }
+                    });
+                  });
+                }
+              }
+            };
+
+            setTimeout(checkAndRescroll, 100);
+            setTimeout(checkAndRescroll, 300);
+            setTimeout(checkAndRescroll, 600);
             setTimeout(() => {
               hasInitialScrollCompletedRef.current = true;
-            }, 150);
+            }, 800);
           }
         });
       });
@@ -168,12 +189,43 @@ export const useChatWindowScroll = ({
             }, 0);
 
             if (shouldScroll) {
+              pendingScrollRef.current = true;
+              
               setTimeout(() => {
                 if (parentRef.current) {
                   parentRef.current.scrollTo({
                     top: parentRef.current.scrollHeight,
                     behavior: "smooth",
                   });
+
+                  setTimeout(() => {
+                    if (parentRef.current && pendingScrollRef.current) {
+                      const scrollHeightAfterScroll = parentRef.current.scrollHeight;
+                      
+                      const checkAndRescrollAfterImage = () => {
+                        if (parentRef.current && pendingScrollRef.current) {
+                          const currentScrollHeight = parentRef.current.scrollHeight;
+                          if (currentScrollHeight > scrollHeightAfterScroll) {
+                            requestAnimationFrame(() => {
+                              requestAnimationFrame(() => {
+                                if (parentRef.current && pendingScrollRef.current) {
+                                  parentRef.current.scrollTop = parentRef.current.scrollHeight;
+                                  pendingScrollRef.current = false;
+                                }
+                              });
+                            });
+                          }
+                        }
+                      };
+
+                      setTimeout(checkAndRescrollAfterImage, 100);
+                      setTimeout(checkAndRescrollAfterImage, 300);
+                      setTimeout(checkAndRescrollAfterImage, 500);
+                      setTimeout(() => {
+                        pendingScrollRef.current = false;
+                      }, 700);
+                    }
+                  }, 200);
                 }
               }, 150);
             }
@@ -187,6 +239,40 @@ export const useChatWindowScroll = ({
       }
     }
   }, [messages, virtualizer, parentRef, itemRefs, currentUserEmail]);
+
+  useEffect(() => {
+    const scrollElement = parentRef.current;
+    if (!scrollElement) return;
+
+    const handleImageLoad = () => {
+      if (scrollElement) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (scrollElement) {
+              virtualizer.measure();
+              const newScrollHeight = scrollElement.scrollHeight;
+              const currentScrollTop = scrollElement.scrollTop;
+              const clientHeight = scrollElement.clientHeight;
+              
+              const isNearBottom = newScrollHeight - currentScrollTop - clientHeight < 200;
+              
+              if (isNearBottom || !hasInitialScrollCompletedRef.current || pendingScrollRef.current) {
+                scrollElement.scrollTop = newScrollHeight;
+                if (pendingScrollRef.current) {
+                  pendingScrollRef.current = false;
+                }
+              }
+            }
+          });
+        });
+      }
+    };
+
+    scrollElement.addEventListener("imageLoaded", handleImageLoad);
+    return () => {
+      scrollElement.removeEventListener("imageLoaded", handleImageLoad);
+    };
+  }, [virtualizer, parentRef]);
 
   useEffect(() => {
     const scrollElement = parentRef.current;

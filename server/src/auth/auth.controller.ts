@@ -35,16 +35,13 @@ export class AuthController {
 
     const isHTTPS =
       req.protocol === 'https' || req.get('x-forwarded-proto') === 'https';
-    const cookieOptions = {
+    res.cookie('accessToken', accessToken, {
       httpOnly: true,
       secure: isHTTPS,
       sameSite: (isHTTPS ? 'none' : 'lax') as 'none' | 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/',
-    };
-
-    console.log('Setting cookie with options:', cookieOptions);
-    res.cookie('accessToken', accessToken, cookieOptions);
+    });
 
     return {
       user: {
