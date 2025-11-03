@@ -40,6 +40,7 @@ export const ChatWindow = ({
   const anchorMessageIndexRef = useRef<number | null>(null);
   const anchorMessageOffsetRef = useRef<number>(0);
   const previousScrollTopRef = useRef<number>(0);
+  const hasInitialScrollCompletedRef = useRef(false);
 
   const isSameDay = (date1: Date, date2: Date) => {
     return (
@@ -259,14 +260,26 @@ export const ChatWindow = ({
     if (
       messages.length > 0 &&
       parentRef.current &&
-      previousMessageCountRef.current === 0
+      previousMessageCountRef.current === 0 &&
+      !hasInitialScrollCompletedRef.current &&
+      !isLoading
     ) {
       virtualizer.measure();
-      if (parentRef.current) {
-        parentRef.current.scrollTop = parentRef.current.scrollHeight;
-      }
+      shouldAutoScrollRef.current = true;
+      
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (parentRef.current) {
+            parentRef.current.scrollTop = parentRef.current.scrollHeight;
+            
+            setTimeout(() => {
+              hasInitialScrollCompletedRef.current = true;
+            }, 150);
+          }
+        });
+      });
     }
-  }, [messages.length, virtualizer]);
+  }, [messages.length, virtualizer, isLoading]);
 
   useEffect(() => {
     if (messages && messages.length > 0 && parentRef.current) {
@@ -341,7 +354,13 @@ export const ChatWindow = ({
       shouldAutoScrollRef.current = isAtBottom;
 
       const isAtTop = scrollTop < 100;
-      if (isAtTop && hasMore && !isLoadingMoreRef.current && !isLoadingMore) {
+      if (
+        isAtTop &&
+        hasMore &&
+        !isLoadingMoreRef.current &&
+        !isLoadingMore &&
+        hasInitialScrollCompletedRef.current
+      ) {
         isLoadingMoreRef.current = true;
         previousScrollHeightRef.current = scrollHeight;
         previousScrollTopRef.current = scrollTop;
