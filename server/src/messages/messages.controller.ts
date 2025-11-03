@@ -17,6 +17,7 @@ import type { Request } from 'express';
 import type { UploadApiResponse } from 'cloudinary';
 import type { UploadStream } from 'cloudinary';
 import { MessagesService } from './messages.service';
+import { MessagesGateway } from './messages.gateway';
 import { AuthGuard } from '../auth/auth.guard';
 import { CLOUDINARY } from '../cloudinary/cloudinary.module';
 
@@ -34,6 +35,7 @@ interface UploadedFileType {
 export class MessagesController {
   constructor(
     private readonly messagesService: MessagesService,
+    private readonly messagesGateway: MessagesGateway,
     @Inject(CLOUDINARY) private readonly cloudinary: any,
   ) {}
 
@@ -47,7 +49,10 @@ export class MessagesController {
     const validatedLimit = Math.min(Math.max(limitNum, 1), 50);
 
     const result = oldestMessageId
-      ? await this.messagesService.getOlderMessages(oldestMessageId, validatedLimit)
+      ? await this.messagesService.getOlderMessages(
+          oldestMessageId,
+          validatedLimit,
+        )
       : await this.messagesService.getLatestMessages(validatedLimit);
 
     const messages = result.messages.map((msg) => ({
@@ -81,7 +86,7 @@ export class MessagesController {
       dto,
     );
 
-    return {
+    const message = {
       id: messageDoc.id,
       user: {
         email: messageDoc.userEmail,
@@ -91,6 +96,11 @@ export class MessagesController {
       media: messageDoc.media,
       timestamp: messageDoc.timestamp.toDate().toISOString(),
     };
+
+    // Emit WebSocket event after message is saved
+    this.messagesGateway.emitNewMessage(message);
+
+    return message;
   }
 
   @Post('upload-image')
@@ -108,38 +118,52 @@ export class MessagesController {
     }
 
     if (!file.mimetype.startsWith('image/')) {
-      throw new BadRequestException(`File must be an image. Received: ${file.mimetype}`);
+      throw new BadRequestException(
+        `File must be an image. Received: ${file.mimetype}`,
+      );
     }
 
     if (!file.buffer) {
-      throw new BadRequestException('File buffer is missing. Please try again.');
+      throw new BadRequestException(
+        'File buffer is missing. Please try again.',
+      );
     }
 
     return new Promise<{ url: string }>((resolve, reject) => {
       try {
-        const uploadStream: UploadStream = this.cloudinary.uploader.upload_stream(
-          {
-            resource_type: 'image',
-            folder: 'chat-images',
-          },
-          (error: Error | undefined, result: UploadApiResponse | undefined) => {
-            if (error) {
-              reject(
-                new BadRequestException(
-                  `Failed to upload image to Cloudinary: ${error.message || 'Unknown error'}`,
-                ),
-              );
-            } else if (result) {
-              resolve({ url: result.secure_url });
-            } else {
-              reject(new BadRequestException('Upload completed but no URL was returned'));
-            }
-          },
-        );
+        const uploadStream: UploadStream =
+          this.cloudinary.uploader.upload_stream(
+            {
+              resource_type: 'image',
+              folder: 'chat-images',
+            },
+            (
+              error: Error | undefined,
+              result: UploadApiResponse | undefined,
+            ) => {
+              if (error) {
+                reject(
+                  new BadRequestException(
+                    `Failed to upload image to Cloudinary: ${error.message || 'Unknown error'}`,
+                  ),
+                );
+              } else if (result) {
+                resolve({ url: result.secure_url });
+              } else {
+                reject(
+                  new BadRequestException(
+                    'Upload completed but no URL was returned',
+                  ),
+                );
+              }
+            },
+          );
 
         uploadStream.on('error', (streamError: Error) => {
           reject(
-            new BadRequestException(`Upload stream error: ${streamError.message || 'Unknown error'}`),
+            new BadRequestException(
+              `Upload stream error: ${streamError.message || 'Unknown error'}`,
+            ),
           );
         });
 

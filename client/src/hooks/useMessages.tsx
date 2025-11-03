@@ -1,128 +1,177 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { Message } from "@/types";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { 
+  useMutation, 
+  useQueryClient, 
+  useInfiniteQuery,
+  InfiniteData,
+} from "@tanstack/react-query";
 import { messagesService } from "@/services/messages.service";
+import { useWebSocket } from "./useWebSocket";
+import { useUser } from "./useUser";
 
 const MESSAGES_PER_PAGE = 10;
+const MESSAGES_QUERY_KEY = ["messages"];
 
 export const useMessages = () => {
-  const [allMessages, setAllMessages] = useState<Message[]>([]);
-  const [hasMore, setHasMore] = useState(true);
-  const [oldestMessageId, setOldestMessageId] = useState<string | undefined>();
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [retryTrigger, setRetryTrigger] = useState(0);
+  const queryClient = useQueryClient();
 
-  const loadInitialMessages = useCallback(async () => {
-    setIsInitialLoading(true);
-    setError(null);
-    try {
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch,
+  } = useInfiniteQuery({
+    queryKey: MESSAGES_QUERY_KEY,
+    queryFn: async ({ pageParam }: { pageParam?: string }) => {
       const result = await messagesService.getMessages({
         limit: MESSAGES_PER_PAGE,
+        oldestMessageId: pageParam,
       });
+      return result;
+    },
+    initialPageParam: undefined,
+    getNextPageParam: (lastPage) => lastPage.oldestMessageId,
+  });
 
-      setAllMessages(result.messages);
-      setOldestMessageId(result.oldestMessageId);
-      setHasMore(result.hasMore);
-    } catch (err) {
-      const error =
-        err instanceof Error ? err : new Error("Failed to load messages");
-      setError(error);
-      console.error("Error loading initial messages:", error);
-    } finally {
-      setIsInitialLoading(false);
-    }
-  }, []);
+  // Handle WebSocket messages - add to the first page without resetting pagination
+  const handleNewMessage = useCallback(
+    (message: Message) => {
+      queryClient.setQueryData<InfiniteData<{
+        messages: Message[];
+        hasMore: boolean;
+        oldestMessageId?: string;
+      }>>(MESSAGES_QUERY_KEY, (oldData) => {
+        if (!oldData) {
+          return {
+            pages: [
+              {
+                messages: [message],
+                hasMore: false,
+              },
+            ],
+            pageParams: [undefined],
+          };
+        }
 
-  useEffect(() => {
-    loadInitialMessages();
-  }, [loadInitialMessages, retryTrigger]);
+        // Check if message already exists (avoid duplicates)
+        const messageExists = oldData.pages.some((page) =>
+          page.messages.some((m) => m.id === message.id)
+        );
 
-  const retry = useCallback(() => {
-    setRetryTrigger((prev) => prev + 1);
-  }, []);
+        if (messageExists) {
+          return oldData;
+        }
 
-  const loadMoreMessages = useCallback(async () => {
-    if (isLoadingMore || !hasMore || !oldestMessageId) return;
+        // Add to the first page (newest messages)
+        const firstPage = oldData.pages[0];
+        const updatedFirstPage = {
+          ...firstPage,
+          messages: [...firstPage.messages, message],
+        };
 
-    setIsLoadingMore(true);
-    setError(null);
-    try {
-      const result = await messagesService.getMessages({
-        limit: MESSAGES_PER_PAGE,
-        oldestMessageId,
+        return {
+          ...oldData,
+          pages: [updatedFirstPage, ...oldData.pages.slice(1)],
+        };
       });
+    },
+    [queryClient]
+  );
 
-      setAllMessages((prev) => [...result.messages, ...prev]);
-      setOldestMessageId(result.oldestMessageId);
-      setHasMore(result.hasMore);
-    } catch (err) {
-      const error =
-        err instanceof Error ? err : new Error("Failed to load more messages");
-      setError(error);
-      console.error("Error loading more messages:", error);
-    } finally {
-      setIsLoadingMore(false);
+  // Set up WebSocket connection
+  useWebSocket(handleNewMessage);
+
+  // Flatten all messages from all pages
+  // Pages are ordered: [newest_page, older_page_1, older_page_2, ...]
+  // Within each page, messages are ordered: [oldest, ..., newest]
+  // We need to flatten in order: [older_page_2, ..., older_page_1, newest_page]
+  // to get chronological order: [oldest, ..., newest]
+  const allMessages = useMemo(() => {
+    if (!data) return [];
+    // Reverse pages to get older pages first, then flatten
+    const reversedPages = [...data.pages].reverse();
+    return reversedPages.flatMap((page) => page.messages);
+  }, [data]);
+
+  const loadMoreMessages = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
-  }, [oldestMessageId, hasMore, isLoadingMore]);
-
-  const appendMessage = useCallback((message: Message) => {
-    setAllMessages((prev) => {
-      if (prev.some((m) => m.id === message.id)) {
-        return prev;
-      }
-      return [...prev, message];
-    });
-  }, []);
-
-  useEffect(() => {
-    setAppendMessageCallback(appendMessage);
-    return () => {
-      setAppendMessageCallback(() => {});
-    };
-  }, [appendMessage]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return {
     data: allMessages,
-    isLoading: isInitialLoading,
-    error,
-    hasMore,
-    isLoadingMore,
+    isLoading,
+    error: error as Error | null,
+    hasMore: hasNextPage ?? false,
+    isLoadingMore: isFetchingNextPage,
     loadMoreMessages,
-    appendMessage,
-    retry,
+    retry: refetch,
   };
-};
-
-let appendMessageCallback: ((message: Message) => void) | null = null;
-
-export const setAppendMessageCallback = (
-  callback: (message: Message) => void
-) => {
-  appendMessageCallback = callback;
 };
 
 export const useSendMessage = () => {
   const queryClient = useQueryClient();
+  const { user } = useUser();
 
   const sendMessage = async (newMessage: {
     content?: string;
     media?: string;
   }): Promise<Message> => {
     const message = await messagesService.createMessage(newMessage);
-
-    if (appendMessageCallback) {
-      appendMessageCallback(message);
-    }
-
     return message;
   };
-  
+
   return useMutation({
     mutationFn: sendMessage,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["messages"] });
+    onSuccess: (message) => {
+      // The message will be added via WebSocket, but we need to ensure
+      // it's not duplicated if WebSocket hasn't connected yet
+      // We'll add it optimistically if it's from the current user
+      if (user && message.user.email === user.email) {
+        queryClient.setQueryData<InfiniteData<{
+          messages: Message[];
+          hasMore: boolean;
+          oldestMessageId?: string;
+        }>>(MESSAGES_QUERY_KEY, (oldData) => {
+          if (!oldData) {
+            return {
+              pages: [
+                {
+                  messages: [message],
+                  hasMore: false,
+                },
+              ],
+              pageParams: [undefined],
+            };
+          }
+
+          // Check if message already exists
+          const messageExists = oldData.pages.some((page) =>
+            page.messages.some((m) => m.id === message.id)
+          );
+
+          if (messageExists) {
+            return oldData;
+          }
+
+          // Add to the first page
+          const firstPage = oldData.pages[0];
+          const updatedFirstPage = {
+            ...firstPage,
+            messages: [...firstPage.messages, message],
+          };
+
+          return {
+            ...oldData,
+            pages: [updatedFirstPage, ...oldData.pages.slice(1)],
+          };
+        });
+      }
     },
   });
 };
