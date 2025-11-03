@@ -3,7 +3,6 @@ import { Box, AppBar, Toolbar, Typography, Button } from "@mui/material";
 import { ChatWindow } from "@/components/ChatWindow";
 import { MessageInput } from "@/components/MessageInput";
 import { useMessages } from "@/hooks/useMessages";
-import { useSendMessage } from "@/hooks/useSendMessage";
 import { useUser } from "@/hooks/useUser";
 import { authService } from "@/services/auth.service";
 import { useQueryClient } from "@tanstack/react-query";
@@ -18,24 +17,15 @@ export const Chat = () => {
     loadMoreMessages,
     retry,
   } = useMessages();
-  const { mutate: sendMessage, isPending } = useSendMessage();
   const { user } = useUser();
   const queryClient = useQueryClient();
-
-  const handleSendMessage = useCallback((newMessage: {
-    content?: string;
-    media?: string;
-  }) => {
-    sendMessage(newMessage);
-  }, [sendMessage]);
 
   const handleLogout = useCallback(async () => {
     try {
       await authService.logout();
       queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
       window.location.reload();
-    } catch {
-    }
+    } catch {}
   }, [queryClient]);
 
   return (
@@ -124,9 +114,7 @@ export const Chat = () => {
         )}
       </Box>
 
-      {user && (
-        <MessageInput onSend={handleSendMessage} isPending={isPending} />
-      )}
+      {user && <MessageInput />}
     </Box>
   );
 };

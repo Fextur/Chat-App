@@ -1,10 +1,10 @@
-import { useEffect, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
-import { Message } from '@/types';
-import { useUser } from './useUser';
+import { useEffect, useRef } from "react";
+import { io, Socket } from "socket.io-client";
+import { Message } from "@/types";
+import { useUser } from "./useUser";
 
 const API_URL =
-  (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000';
+  (import.meta as any).env?.VITE_API_URL || "http://localhost:3000";
 
 export const useWebSocket = (onNewMessage: (message: Message) => void) => {
   const socketRef = useRef<Socket | null>(null);
@@ -30,7 +30,7 @@ export const useWebSocket = (onNewMessage: (message: Message) => void) => {
 
     const socket = io(API_URL, {
       withCredentials: true,
-      transports: ['websocket', 'polling'],
+      transports: ["websocket", "polling"],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
@@ -38,16 +38,13 @@ export const useWebSocket = (onNewMessage: (message: Message) => void) => {
 
     socketRef.current = socket;
 
-    socket.on('connect', () => {
-    });
+    socket.on("connect", () => {});
 
-    socket.on('disconnect', (reason) => {
-    });
+    socket.on("disconnect", (_reason) => {});
 
-    socket.on('connect_error', (error) => {
-    });
+    socket.on("connect_error", (_error) => {});
 
-    socket.on('newMessage', (message: Message) => {
+    socket.on("newMessage", (message: Message) => {
       const messageWithDate: Message = {
         ...message,
         timestamp: new Date(message.timestamp),

@@ -6,6 +6,7 @@ import {
   DragEvent,
   useCallback,
   useMemo,
+  useEffect,
 } from "react";
 import {
   Box,
@@ -18,69 +19,45 @@ import {
   Snackbar,
 } from "@mui/material";
 import { Send, ImagePlus, X, Sparkles } from "lucide-react";
-import { messagesService } from "@/services/messages.service";
-import { useMutation } from "@tanstack/react-query";
+import { useAIAssistance } from "@/hooks/useAIAssistance";
+import { useSendMessage } from "@/hooks/useSendMessage";
 
 const MAX_MESSAGE_LENGTH = 200;
 
-interface MessageInputProps {
-  onSend: (message: { content?: string; media?: string }) => void;
-  isPending?: boolean;
-}
-
-export const MessageInput = ({
-  onSend,
-  isPending = false,
-}: MessageInputProps) => {
+export const MessageInput = () => {
   const [message, setMessage] = useState("");
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [dragCounter, setDragCounter] = useState(0);
+  const [_dragCounter, setDragCounter] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const aiAssistanceMutation = useMutation({
-    mutationFn: () => messagesService.requestAIAssistance(),
-    onError: (error: any) => {
+  const aiAssistanceMutation = useAIAssistance();
+  const sendMessageMutation = useSendMessage();
+
+  useEffect(() => {
+    if (aiAssistanceMutation.error) {
       const errorMessage =
-        error?.response?.data?.message ||
-        error?.message ||
+        (aiAssistanceMutation.error as any)?.response?.data?.message ||
+        (aiAssistanceMutation.error as any)?.message ||
         "Failed to get AI assistance. Please try again.";
       setError(errorMessage);
-    },
-  });
+    }
+  }, [aiAssistanceMutation.error]);
 
-  const handleSend = useCallback(async () => {
-    if (
-      (message.trim() || selectedFile) &&
-      message.length <= MAX_MESSAGE_LENGTH &&
-      !isUploading
-    ) {
-      let mediaUrl: string | undefined;
+  useEffect(() => {
+    if (sendMessageMutation.error) {
+      const errorMessage =
+        (sendMessageMutation.error as any)?.response?.data?.message ||
+        (sendMessageMutation.error as any)?.message ||
+        "Failed to send message. Please try again.";
+      setError(errorMessage);
+    }
+  }, [sendMessageMutation.error]);
 
-      if (selectedFile) {
-        setIsUploading(true);
-        setError(null);
-        try {
-          mediaUrl = await messagesService.uploadImage(selectedFile);
-        } catch (error: any) {
-          const errorMessage =
-            error?.response?.data?.message ||
-            error?.message ||
-            "Failed to upload image. Please try again.";
-          setError(errorMessage);
-          setIsUploading(false);
-          return;
-        }
-        setIsUploading(false);
-      }
-
-      onSend({
-        content: message.trim() || undefined,
-        media: mediaUrl || undefined,
-      });
+  useEffect(() => {
+    if (sendMessageMutation.isSuccess) {
       setMessage("");
       setMediaPreview(null);
       setSelectedFile(null);
@@ -88,9 +65,22 @@ export const MessageInput = ({
         fileInputRef.current.value = "";
       }
     }
-  }, [message, selectedFile, isUploading, onSend]);
+  }, [sendMessageMutation.isSuccess]);
 
-  const handleKeyPress = useCallback(
+  const handleSend = useCallback(() => {
+    if (
+      (message.trim() || selectedFile) &&
+      message.length <= MAX_MESSAGE_LENGTH &&
+      !sendMessageMutation.isPending
+    ) {
+      sendMessageMutation.mutate({
+        content: message.trim() || undefined,
+        file: selectedFile || undefined,
+      });
+    }
+  }, [message, selectedFile, sendMessageMutation]);
+
+  const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
@@ -133,12 +123,12 @@ export const MessageInput = ({
     (e: DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      if (!isPending && !isUploading) {
+      if (!sendMessageMutation.isPending) {
         setDragCounter((prev) => prev + 1);
         setIsDragging(true);
       }
     },
-    [isPending, isUploading]
+    [sendMessageMutation.isPending]
   );
 
   const handleDragOver = useCallback((e: DragEvent) => {
@@ -165,7 +155,7 @@ export const MessageInput = ({
       setIsDragging(false);
       setDragCounter(0);
 
-      if (isPending || isUploading) return;
+      if (sendMessageMutation.isPending) return;
 
       const files = e.dataTransfer.files;
       if (files && files.length > 0) {
@@ -173,7 +163,7 @@ export const MessageInput = ({
         processImageFile(file);
       }
     },
-    [isPending, isUploading, processImageFile]
+    [sendMessageMutation.isPending, processImageFile]
   );
 
   const remaining = useMemo(
@@ -186,8 +176,8 @@ export const MessageInput = ({
     [message, selectedFile]
   );
   const canShowAIAssistance = useMemo(
-    () => !hasContent && !isPending && !isUploading,
-    [hasContent, isPending, isUploading]
+    () => !hasContent && !sendMessageMutation.isPending,
+    [hasContent, sendMessageMutation.isPending]
   );
 
   return (
@@ -285,7 +275,7 @@ export const MessageInput = ({
           <Tooltip title="Add image">
             <IconButton
               onClick={() => fileInputRef.current?.click()}
-              disabled={isPending || isUploading}
+              disabled={sendMessageMutation.isPending}
               sx={{
                 color: "text.secondary",
                 flexShrink: 0,
@@ -307,8 +297,8 @@ export const MessageInput = ({
             placeholder="Type a message…"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            disabled={isPending || isUploading}
+            onKeyDown={handleKeyDown}
+            disabled={sendMessageMutation.isPending}
             error={isOverLimit}
             helperText={
               remaining <= 20
@@ -379,8 +369,7 @@ export const MessageInput = ({
               disabled={
                 (!message.trim() && !selectedFile) ||
                 isOverLimit ||
-                isPending ||
-                isUploading
+                sendMessageMutation.isPending
               }
               sx={{
                 backgroundColor: "primary.main",
@@ -404,7 +393,7 @@ export const MessageInput = ({
                 boxShadow: "0 2px 4px rgba(0, 122, 255, 0.2)",
               }}
             >
-              {isUploading ? (
+              {sendMessageMutation.isPending ? (
                 <CircularProgress size={18} color="inherit" thickness={4} />
               ) : (
                 <Send size={18} />

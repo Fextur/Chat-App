@@ -15,13 +15,29 @@ type MessagesQueryData = InfiniteData<{
   oldestMessageId?: string;
 }>;
 
+export interface SendMessageInput {
+  content?: string;
+  media?: string;
+  file?: File;
+}
+
 export const useSendMessage = () => {
   const queryClient = useQueryClient();
   const { user } = useUser();
 
   return useMutation({
-    mutationFn: (newMessage: { content?: string; media?: string }) =>
-      messagesService.createMessage(newMessage),
+    mutationFn: async (input: SendMessageInput) => {
+      let mediaUrl: string | undefined = input.media;
+
+      if (input.file) {
+        mediaUrl = await messagesService.uploadImage(input.file);
+      }
+
+      return messagesService.createMessage({
+        content: input.content?.trim() || undefined,
+        media: mediaUrl,
+      });
+    },
     onSuccess: (message) => {
       if (user && message.user.email === user.email) {
         queryClient.setQueryData<MessagesQueryData>(

@@ -48,10 +48,12 @@ export const LoginDialog = ({ open, onLoginSuccess }: LoginDialogProps) => {
       open={open}
       maxWidth="sm"
       fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 3,
-          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: 3,
+            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
+          },
         },
       }}
     >
@@ -103,7 +105,9 @@ export const LoginDialog = ({ open, onLoginSuccess }: LoginDialogProps) => {
           fullWidth
           size="large"
           startIcon={
-            loading ? <CircularProgress size={20} color="inherit" thickness={4} /> : null
+            loading ? (
+              <CircularProgress size={20} color="inherit" thickness={4} />
+            ) : null
           }
           sx={{
             py: 1.5,
