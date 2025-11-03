@@ -29,9 +29,8 @@ export const MessageInput = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  // dragCounter is used implicitly through setDragCounter for tracking nested drag events
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  // @ts-ignore - dragCounter is used via setDragCounter for nested drag event tracking
+  // @ts-ignore
   const [dragCounter, setDragCounter] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -182,7 +181,7 @@ export const MessageInput = ({
       </Snackbar>
 
       <Paper
-        elevation={3}
+        elevation={0}
         onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -190,19 +189,24 @@ export const MessageInput = ({
         sx={{
           position: "sticky",
           bottom: 0,
-          backgroundColor: isDragging ? "action.hover" : "background.paper",
-          borderTop: 1,
-          borderColor: isDragging ? "primary.main" : "divider",
-          borderWidth: isDragging ? 2 : 1,
+          backgroundColor: isDragging
+            ? "rgba(0, 122, 255, 0.04)"
+            : "background.paper",
+          borderTop: `1px solid ${
+            isDragging ? "primary.main" : "rgba(0, 0, 0, 0.08)"
+          }`,
+          borderWidth: isDragging ? "2px 0 0 0" : "1px 0 0 0",
           borderStyle: "solid",
-          p: 2,
+          p: { xs: 1.5, sm: 2 },
           transition: "all 0.2s ease-in-out",
+          backdropFilter: "blur(20px)",
+          borderRadius: 0,
         }}
       >
         {mediaPreview && (
           <Box
             sx={{
-              mb: 2,
+              mb: 1.5,
               position: "relative",
               display: "inline-block",
             }}
@@ -214,8 +218,9 @@ export const MessageInput = ({
               sx={{
                 maxWidth: 200,
                 maxHeight: 150,
-                borderRadius: 2,
+                borderRadius: 2.5,
                 objectFit: "cover",
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
               }}
             />
             <IconButton
@@ -227,12 +232,17 @@ export const MessageInput = ({
                 right: -8,
                 backgroundColor: "error.main",
                 color: "white",
+                width: 24,
+                height: 24,
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
                 "&:hover": {
                   backgroundColor: "error.dark",
+                  transform: "scale(1.1)",
                 },
+                transition: "transform 0.2s ease",
               }}
             >
-              <X size={16} />
+              <X size={14} />
             </IconButton>
           </Box>
         )}
@@ -250,10 +260,16 @@ export const MessageInput = ({
               onClick={() => fileInputRef.current?.click()}
               disabled={isPending || isUploading}
               sx={{
-                color: "primary.main",
+                color: "text.secondary",
+                flexShrink: 0,
+                "&:hover": {
+                  backgroundColor: "rgba(0, 0, 0, 0.04)",
+                  color: "primary.main",
+                },
+                transition: "all 0.2s ease",
               }}
             >
-              <ImagePlus size={24} />
+              <ImagePlus size={22} />
             </IconButton>
           </Tooltip>
 
@@ -276,7 +292,20 @@ export const MessageInput = ({
             }
             sx={{
               "& .MuiOutlinedInput-root": {
-                borderRadius: 3,
+                borderRadius: 2.5,
+                fontSize: "0.9375rem",
+                alignItems: "center",
+                "&.Mui-focused": {
+                  backgroundColor: "background.paper",
+                },
+              },
+              "& .MuiInputBase-input": {
+                alignSelf: "center",
+              },
+              "& .MuiFormHelperText-root": {
+                fontSize: "0.6875rem",
+                marginLeft: 0,
+                marginTop: 0.5,
               },
             }}
           />
@@ -290,8 +319,10 @@ export const MessageInput = ({
                 sx={{
                   backgroundColor: "secondary.main",
                   color: "white",
+                  flexShrink: 0,
                   "&:hover": {
                     backgroundColor: "secondary.dark",
+                    transform: "scale(1.05)",
                   },
                   "&.Mui-disabled": {
                     backgroundColor: "action.disabledBackground",
@@ -299,15 +330,18 @@ export const MessageInput = ({
                   },
                   height: 40,
                   width: 40,
+                  borderRadius: 2.5,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  transition: "transform 0.2s ease",
+                  boxShadow: "0 2px 4px rgba(88, 86, 214, 0.2)",
                 }}
               >
                 {aiAssistanceMutation.isPending ? (
-                  <CircularProgress size={20} color="inherit" />
+                  <CircularProgress size={18} color="inherit" thickness={4} />
                 ) : (
-                  <Sparkles size={20} />
+                  <Sparkles size={18} />
                 )}
               </IconButton>
             </Tooltip>
@@ -324,8 +358,10 @@ export const MessageInput = ({
               sx={{
                 backgroundColor: "primary.main",
                 color: "white",
+                flexShrink: 0,
                 "&:hover": {
                   backgroundColor: "primary.dark",
+                  transform: "scale(1.05)",
                 },
                 "&.Mui-disabled": {
                   backgroundColor: "action.disabledBackground",
@@ -333,15 +369,18 @@ export const MessageInput = ({
                 },
                 height: 40,
                 width: 40,
+                borderRadius: 2.5,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                transition: "transform 0.2s ease",
+                boxShadow: "0 2px 4px rgba(0, 122, 255, 0.2)",
               }}
             >
               {isUploading ? (
-                <CircularProgress size={20} color="inherit" />
+                <CircularProgress size={18} color="inherit" thickness={4} />
               ) : (
-                <Send size={20} />
+                <Send size={18} />
               )}
             </IconButton>
           )}

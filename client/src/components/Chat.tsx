@@ -33,8 +33,8 @@ export const Chat = () => {
       await authService.logout();
       queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
       window.location.reload();
-    } catch (error) {
-      console.error("Logout error:", error);
+    } catch {
+      // Error handling
     }
   };
 
@@ -48,18 +48,61 @@ export const Chat = () => {
         overflow: "hidden",
       }}
     >
-      <AppBar position="static" elevation={1}>
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+      <AppBar
+        position="static"
+        elevation={0}
+        sx={{
+          backgroundColor: "background.paper",
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          backdropFilter: "blur(20px)",
+        }}
+      >
+        <Toolbar
+          sx={{
+            minHeight: { xs: 56, sm: 64 },
+            px: { xs: 2, sm: 3 },
+          }}
+        >
+          <Typography
+            variant="h6"
+            component="div"
+            sx={{
+              flexGrow: 1,
+              fontWeight: 600,
+              fontSize: { xs: "1.125rem", sm: "1.25rem" },
+              color: "text.primary",
+              letterSpacing: "-0.01em",
+            }}
+          >
             Group Chat
           </Typography>
-          <Typography variant="body2" sx={{ opacity: 0.8, mr: 2 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mr: 2,
+              fontSize: { xs: "0.8125rem", sm: "0.875rem" },
+              display: { xs: "none", sm: "block" },
+            }}
+          >
             {user?.name}
           </Typography>
           <Button
-            color="inherit"
             onClick={handleLogout}
-            sx={{ textTransform: "none" }}
+            sx={{
+              textTransform: "none",
+              color: "text.secondary",
+              fontWeight: 500,
+              borderRadius: 2,
+              px: 1.5,
+              py: 0.75,
+              "&:hover": {
+                backgroundColor: "rgba(0, 0, 0, 0.04)",
+                color: "text.primary",
+              },
+              fontSize: { xs: "0.8125rem", sm: "0.875rem" },
+            }}
           >
             Logout
           </Button>

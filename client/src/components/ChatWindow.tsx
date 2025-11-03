@@ -30,6 +30,7 @@ export const ChatWindow = ({
   const imageDimensionsRef = useRef<
     Map<string, { width: number; height: number }>
   >(new Map());
+  const handledImagesRef = useRef<WeakSet<HTMLImageElement>>(new WeakSet());
   const shouldAutoScrollRef = useRef(true);
   const previousMessageCountRef = useRef(0);
   const isLoadingMoreRef = useRef(false);
@@ -74,10 +75,10 @@ export const ChatWindow = ({
         estimatedHeight += 58;
       }
 
-      estimatedHeight += 80;
+      estimatedHeight += 82;
 
       if (isCurrentUser) {
-        estimatedHeight -= 24;
+        estimatedHeight -= 20;
       }
 
       if (message.media) {
@@ -109,38 +110,29 @@ export const ChatWindow = ({
       }
 
       if (message.content) {
-        // Calculate wrapped lines based on container width
-        // Account for: 70% max width, padding (1.5 * 8px = 12px each side = 24px total)
         const containerWidth = parentRef.current?.clientWidth || 500;
-        const maxTextWidth = containerWidth * 0.7 - 24; // Account for padding
-        // Approximate characters per line (assuming ~8px per character for body1 text)
+        const maxTextWidth = containerWidth * 0.7 - 28;
         const charsPerLine = Math.max(1, Math.floor(maxTextWidth / 8));
         
-        // Split content by line breaks to handle actual newlines
         const contentLines = message.content.split('\n');
         let totalLines = 0;
         
-        // Calculate wrapping for each line segment (separated by \n)
         contentLines.forEach((lineSegment) => {
           if (lineSegment.length > 0) {
-            // Calculate how many wrapped lines this line segment needs
             const wrappedLines = Math.ceil(lineSegment.length / charsPerLine);
             totalLines += wrappedLines;
           } else {
-            // Empty line segment (represents a line break creating an empty line)
             totalLines += 1;
           }
         });
         
-        // Ensure at least 1 line if content exists
         totalLines = Math.max(1, totalLines);
         
-        // Use line height of ~24px (body1 with some margin)
         const lineHeight = 24;
         estimatedHeight += totalLines * lineHeight;
         
         if (message.media) {
-          estimatedHeight += 8;
+          estimatedHeight += 10;
         }
       }
 
@@ -194,29 +186,81 @@ export const ChatWindow = ({
 
   useEffect(() => {
     const handleImageLoad = () => {
-      virtualizer.getVirtualItems().forEach((virtualItem) => {
-        const element = itemRefs.current.get(virtualItem.index);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          virtualizer.getVirtualItems().forEach((virtualItem) => {
+            const element = itemRefs.current.get(virtualItem.index);
+            if (element) {
+              virtualizer.measureElement(element);
+            }
+          });
+          virtualizer.measure();
+        });
+      });
+    };
+
+    const handleCustomImageLoad = (e: Event) => {
+      const target = e.target as HTMLElement;
+      const index = target.getAttribute('data-index');
+      if (index !== null) {
+        const element = itemRefs.current.get(parseInt(index, 10));
         if (element) {
-          virtualizer.measureElement(element);
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              virtualizer.measureElement(element);
+              virtualizer.measure();
+            });
+          });
+        }
+      }
+    };
+
+    const setupImageListeners = () => {
+      const images = parentRef.current?.querySelectorAll("img");
+      images?.forEach((img) => {
+        if (handledImagesRef.current.has(img)) {
+          return;
+        }
+        handledImagesRef.current.add(img);
+        
+        if (img.complete && img.naturalHeight !== 0) {
+          setTimeout(handleImageLoad, 0);
+        } else {
+          img.addEventListener("load", handleImageLoad, { once: true });
+          img.addEventListener("error", handleImageLoad, { once: true });
         }
       });
     };
 
-    const images = parentRef.current?.querySelectorAll("img");
-    images?.forEach((img) => {
-      if (img.complete) {
-        handleImageLoad();
-      } else {
-        img.addEventListener("load", handleImageLoad);
-        img.addEventListener("error", handleImageLoad);
+    if (parentRef.current) {
+      parentRef.current.addEventListener('imageLoaded', handleCustomImageLoad);
+    }
+
+    setupImageListeners();
+
+    let timeoutId: NodeJS.Timeout | null = null;
+    const observer = new MutationObserver(() => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
       }
+      timeoutId = setTimeout(setupImageListeners, 50);
     });
 
-    return () => {
-      images?.forEach((img) => {
-        img.removeEventListener("load", handleImageLoad);
-        img.removeEventListener("error", handleImageLoad);
+    if (parentRef.current) {
+      observer.observe(parentRef.current, {
+        childList: true,
+        subtree: true,
       });
+    }
+
+    return () => {
+      observer.disconnect();
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      if (parentRef.current) {
+        parentRef.current.removeEventListener('imageLoaded', handleCustomImageLoad);
+      }
     };
   }, [virtualizer, messages]);
 
@@ -430,7 +474,7 @@ export const ChatWindow = ({
           height: "100%",
         }}
       >
-        <CircularProgress />
+        <CircularProgress size={40} thickness={4} />
       </Box>
     );
   }
@@ -445,13 +489,31 @@ export const ChatWindow = ({
           alignItems: "center",
           height: "100%",
           gap: 2,
+          px: 2,
         }}
       >
-        <Typography color="error">
+        <Typography
+          color="error"
+          variant="body1"
+          sx={{
+            fontSize: "0.9375rem",
+            textAlign: "center",
+          }}
+        >
           {error?.message || "Failed to load messages"}
         </Typography>
         {onRetry && (
-          <Button variant="contained" onClick={onRetry} disabled={isLoading}>
+          <Button
+            variant="contained"
+            onClick={onRetry}
+            disabled={isLoading}
+            sx={{
+              borderRadius: 2,
+              textTransform: "none",
+              px: 2,
+              py: 1,
+            }}
+          >
             Retry
           </Button>
         )}
@@ -468,14 +530,17 @@ export const ChatWindow = ({
         backgroundColor: "background.default",
         position: "relative",
         "&::-webkit-scrollbar": {
-          width: "8px",
+          width: "6px",
         },
         "&::-webkit-scrollbar-track": {
           backgroundColor: "transparent",
         },
         "&::-webkit-scrollbar-thumb": {
-          backgroundColor: "rgba(0,0,0,0.2)",
-          borderRadius: "4px",
+          backgroundColor: "rgba(0, 0, 0, 0.12)",
+          borderRadius: "3px",
+          "&:hover": {
+            backgroundColor: "rgba(0, 0, 0, 0.18)",
+          },
         },
       }}
     >
@@ -489,13 +554,15 @@ export const ChatWindow = ({
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            padding: 2,
+            padding: 1.5,
             zIndex: 1,
-            backgroundColor: "error.light",
-            gap: 2,
+            backgroundColor: "rgba(211, 47, 47, 0.08)",
+            backdropFilter: "blur(10px)",
+            gap: 1.5,
+            borderRadius: "0 0 12px 12px",
           }}
         >
-          <Typography color="error" variant="body2">
+          <Typography color="error" variant="body2" sx={{ fontSize: "0.8125rem" }}>
             {error?.message || "Failed to load more messages"}
           </Typography>
           <Button
@@ -503,6 +570,12 @@ export const ChatWindow = ({
             size="small"
             onClick={onLoadMore}
             disabled={isLoadingMore}
+            sx={{
+              borderRadius: 2,
+              textTransform: "none",
+              minWidth: "auto",
+              px: 1.5,
+            }}
           >
             Retry
           </Button>
@@ -517,12 +590,13 @@ export const ChatWindow = ({
             right: 0,
             display: "flex",
             justifyContent: "center",
-            padding: 2,
+            padding: 1.5,
             zIndex: 1,
             backgroundColor: "background.default",
+            borderRadius: "0 0 12px 12px",
           }}
         >
-          <CircularProgress size={24} />
+          <CircularProgress size={20} thickness={4} />
         </Box>
       )}
       <div

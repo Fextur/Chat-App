@@ -33,7 +33,6 @@ export const LoginDialog = ({ open, onLoginSuccess }: LoginDialogProps) => {
       await authService.login(idToken);
       onLoginSuccess();
     } catch (err: any) {
-      console.error("Login error:", err);
       const errorMessage =
         err?.response?.data?.message ||
         err?.message ||
@@ -59,10 +58,12 @@ export const LoginDialog = ({ open, onLoginSuccess }: LoginDialogProps) => {
       <DialogTitle
         sx={{
           textAlign: "center",
-          fontSize: "1.75rem",
+          fontSize: { xs: "1.5rem", sm: "1.75rem" },
           fontWeight: 600,
           pt: 4,
           pb: 2,
+          color: "text.primary",
+          letterSpacing: "-0.01em",
         }}
       >
         Welcome to Group Chat
@@ -75,12 +76,20 @@ export const LoginDialog = ({ open, onLoginSuccess }: LoginDialogProps) => {
               textAlign: "center",
               color: "text.secondary",
               px: 2,
+              fontSize: "0.9375rem",
+              lineHeight: 1.5,
             }}
           >
             Sign in with your Google account to start chatting
           </Typography>
           {error && (
-            <Alert severity="error" sx={{ borderRadius: 2 }}>
+            <Alert
+              severity="error"
+              sx={{
+                borderRadius: 2,
+                fontSize: "0.875rem",
+              }}
+            >
               {error}
             </Alert>
           )}
@@ -94,18 +103,20 @@ export const LoginDialog = ({ open, onLoginSuccess }: LoginDialogProps) => {
           fullWidth
           size="large"
           startIcon={
-            loading ? <CircularProgress size={20} color="inherit" /> : null
+            loading ? <CircularProgress size={20} color="inherit" thickness={4} /> : null
           }
           sx={{
             py: 1.5,
-            borderRadius: 2,
+            borderRadius: 2.5,
             textTransform: "none",
-            fontSize: "1rem",
+            fontSize: "0.9375rem",
             fontWeight: 500,
-            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+            boxShadow: "0 4px 12px rgba(0, 122, 255, 0.25)",
             "&:hover": {
-              boxShadow: "0 6px 16px rgba(0, 0, 0, 0.2)",
+              boxShadow: "0 6px 16px rgba(0, 122, 255, 0.3)",
+              transform: "translateY(-1px)",
             },
+            transition: "all 0.2s ease",
           }}
         >
           {loading ? "Signing in..." : "Sign in with Google"}
