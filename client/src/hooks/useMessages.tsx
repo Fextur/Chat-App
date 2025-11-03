@@ -1,14 +1,12 @@
 import { useCallback, useMemo } from "react";
 import { Message } from "@/types";
 import { 
-  useMutation, 
   useQueryClient, 
   useInfiniteQuery,
   InfiniteData,
 } from "@tanstack/react-query";
 import { messagesService } from "@/services/messages.service";
 import { useWebSocket } from "./useWebSocket";
-import { useUser } from "./useUser";
 
 const MESSAGES_PER_PAGE = 10;
 const MESSAGES_QUERY_KEY = ["messages"];
@@ -112,66 +110,4 @@ export const useMessages = () => {
     loadMoreMessages,
     retry: refetch,
   };
-};
-
-export const useSendMessage = () => {
-  const queryClient = useQueryClient();
-  const { user } = useUser();
-
-  const sendMessage = async (newMessage: {
-    content?: string;
-    media?: string;
-  }): Promise<Message> => {
-    const message = await messagesService.createMessage(newMessage);
-    return message;
-  };
-
-  return useMutation({
-    mutationFn: sendMessage,
-    onSuccess: (message) => {
-      // The message will be added via WebSocket, but we need to ensure
-      // it's not duplicated if WebSocket hasn't connected yet
-      // We'll add it optimistically if it's from the current user
-      if (user && message.user.email === user.email) {
-        queryClient.setQueryData<InfiniteData<{
-          messages: Message[];
-          hasMore: boolean;
-          oldestMessageId?: string;
-        }>>(MESSAGES_QUERY_KEY, (oldData) => {
-          if (!oldData) {
-            return {
-              pages: [
-                {
-                  messages: [message],
-                  hasMore: false,
-                },
-              ],
-              pageParams: [undefined],
-            };
-          }
-
-          // Check if message already exists
-          const messageExists = oldData.pages.some((page) =>
-            page.messages.some((m) => m.id === message.id)
-          );
-
-          if (messageExists) {
-            return oldData;
-          }
-
-          // Add to the first page
-          const firstPage = oldData.pages[0];
-          const updatedFirstPage = {
-            ...firstPage,
-            messages: [...firstPage.messages, message],
-          };
-
-          return {
-            ...oldData,
-            pages: [updatedFirstPage, ...oldData.pages.slice(1)],
-          };
-        });
-      }
-    },
-  });
 };

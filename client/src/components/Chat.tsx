@@ -1,7 +1,8 @@
 import { Box, AppBar, Toolbar, Typography, Button } from "@mui/material";
 import { ChatWindow } from "@/components/ChatWindow";
 import { MessageInput } from "@/components/MessageInput";
-import { useMessages, useSendMessage } from "@/hooks/useMessages";
+import { useMessages } from "@/hooks/useMessages";
+import { useSendMessage } from "@/hooks/useSendMessage";
 import { useUser } from "@/hooks/useUser";
 import { authService } from "@/services/auth.service";
 import { useQueryClient } from "@tanstack/react-query";
