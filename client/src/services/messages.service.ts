@@ -1,13 +1,5 @@
-import axios from 'axios';
+import { api } from './api';
 import { Message } from '@/types';
-
-const API_URL =
-  (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000';
-
-const api = axios.create({
-  baseURL: API_URL,
-  withCredentials: true,
-});
 
 export interface GetMessagesResponse {
   messages: Message[];
