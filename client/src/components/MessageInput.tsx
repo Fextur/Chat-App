@@ -9,8 +9,9 @@ import {
   Alert,
   Snackbar,
 } from "@mui/material";
-import { Send, ImagePlus, X } from "lucide-react";
+import { Send, ImagePlus, X, Sparkles } from "lucide-react";
 import { messagesService } from "@/services/messages.service";
+import { useMutation } from "@tanstack/react-query";
 
 const MAX_MESSAGE_LENGTH = 200;
 
@@ -28,9 +29,23 @@ export const MessageInput = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  // dragCounter is used implicitly through setDragCounter for tracking nested drag events
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // @ts-ignore - dragCounter is used via setDragCounter for nested drag event tracking
   const [dragCounter, setDragCounter] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const aiAssistanceMutation = useMutation({
+    mutationFn: () => messagesService.requestAIAssistance(),
+    onError: (error: any) => {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to get AI assistance. Please try again.";
+      setError(errorMessage);
+    },
+  });
 
   const handleSend = async () => {
     if (
@@ -146,6 +161,8 @@ export const MessageInput = ({
 
   const remaining = MAX_MESSAGE_LENGTH - message.length;
   const isOverLimit = remaining < 0;
+  const hasContent = message.trim() || selectedFile;
+  const canShowAIAssistance = !hasContent && !isPending && !isUploading;
 
   return (
     <>
@@ -264,38 +281,70 @@ export const MessageInput = ({
             }}
           />
 
-          <IconButton
-            color="primary"
-            onClick={handleSend}
-            disabled={
-              (!message.trim() && !selectedFile) ||
-              isOverLimit ||
-              isPending ||
-              isUploading
-            }
-            sx={{
-              backgroundColor: "primary.main",
-              color: "white",
-              "&:hover": {
-                backgroundColor: "primary.dark",
-              },
-              "&.Mui-disabled": {
-                backgroundColor: "action.disabledBackground",
-                color: "action.disabled",
-              },
-              height: 40,
-              width: 40,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {isUploading ? (
-              <CircularProgress size={20} color="inherit" />
-            ) : (
-              <Send size={20} />
-            )}
-          </IconButton>
+          {canShowAIAssistance ? (
+            <Tooltip title="Get AI assistance">
+              <IconButton
+                color="secondary"
+                onClick={() => aiAssistanceMutation.mutate()}
+                disabled={aiAssistanceMutation.isPending}
+                sx={{
+                  backgroundColor: "secondary.main",
+                  color: "white",
+                  "&:hover": {
+                    backgroundColor: "secondary.dark",
+                  },
+                  "&.Mui-disabled": {
+                    backgroundColor: "action.disabledBackground",
+                    color: "action.disabled",
+                  },
+                  height: 40,
+                  width: 40,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {aiAssistanceMutation.isPending ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  <Sparkles size={20} />
+                )}
+              </IconButton>
+            </Tooltip>
+          ) : (
+            <IconButton
+              color="primary"
+              onClick={handleSend}
+              disabled={
+                (!message.trim() && !selectedFile) ||
+                isOverLimit ||
+                isPending ||
+                isUploading
+              }
+              sx={{
+                backgroundColor: "primary.main",
+                color: "white",
+                "&:hover": {
+                  backgroundColor: "primary.dark",
+                },
+                "&.Mui-disabled": {
+                  backgroundColor: "action.disabledBackground",
+                  color: "action.disabled",
+                },
+                height: 40,
+                width: 40,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {isUploading ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : (
+                <Send size={20} />
+              )}
+            </IconButton>
+          )}
         </Box>
       </Paper>
     </>

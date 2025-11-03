@@ -5,6 +5,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { CryptoModule } from './crypto/crypto.module';
 import { AuthModule } from './auth/auth.module';
 import { MessagesModule } from './messages/messages.module';
+import { OpenAIModule } from './openai/openai.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -15,6 +16,7 @@ import { AppService } from './app.service';
     CloudinaryModule,
     CryptoModule,
     AuthModule,
+    OpenAIModule,
     MessagesModule,
   ],
   controllers: [AppController],

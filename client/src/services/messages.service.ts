@@ -71,4 +71,13 @@ export const messagesService = {
 
     return response.data.url;
   },
+
+  async requestAIAssistance(): Promise<Message> {
+    const response = await api.post<Message>('/messages/ai-assistance');
+
+    return {
+      ...response.data,
+      timestamp: new Date(response.data.timestamp),
+    };
+  },
 };

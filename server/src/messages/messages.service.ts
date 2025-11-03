@@ -207,4 +207,21 @@ export class MessagesService {
         messageDocuments.length > 0 ? messageDocuments[0].id : undefined,
     };
   }
+
+  async getLastMessages(limit: number = 20): Promise<MessageDocument[]> {
+    const query = this.firestore
+      .collection(MESSAGES_COLLECTION)
+      .orderBy('timestamp', 'desc')
+      .limit(limit);
+
+    const snapshot = await query.get();
+    const docs = snapshot.docs.reverse(); // Reverse to get chronological order
+
+    const storedDocuments = docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as StoredMessageDocument[];
+
+    return storedDocuments.map((doc) => this.decryptMessage(doc));
+  }
 }

@@ -20,6 +20,7 @@ import { MessagesService } from './messages.service';
 import { MessagesGateway } from './messages.gateway';
 import { AuthGuard } from '../auth/auth.guard';
 import { CLOUDINARY } from '../cloudinary/cloudinary.module';
+import { OpenAIService } from '../openai/openai.service';
 
 interface UploadedFileType {
   fieldname: string;
@@ -36,6 +37,7 @@ export class MessagesController {
   constructor(
     private readonly messagesService: MessagesService,
     private readonly messagesGateway: MessagesGateway,
+    private readonly openAIService: OpenAIService,
     @Inject(CLOUDINARY) private readonly cloudinary: any,
   ) {}
 
@@ -97,7 +99,6 @@ export class MessagesController {
       timestamp: messageDoc.timestamp.toDate().toISOString(),
     };
 
-    // Emit WebSocket event after message is saved
     this.messagesGateway.emitNewMessage(message);
 
     return message;
@@ -176,5 +177,79 @@ export class MessagesController {
         );
       }
     });
+  }
+
+  @Post('ai-assistance')
+  async getAIAssistance(@Req() req: Request) {
+    try {
+      const lastMessages = await this.messagesService.getLastMessages(15);
+
+      if (!lastMessages || lastMessages.length === 0) {
+        throw new BadRequestException(
+          'No messages found in chat history. Please send some messages first.',
+        );
+      }
+
+      const messageContext = lastMessages.map((msg) => ({
+        userName: msg.userName || 'Unknown User',
+        content: msg.content,
+        media: msg.media,
+      }));
+
+      let aiResponse: string;
+      try {
+        aiResponse = await this.openAIService.generateResponse(messageContext);
+      } catch (error: any) {
+        throw new BadRequestException(
+          error instanceof Error
+            ? error.message
+            : 'Failed to generate AI response. Please check server logs for details.',
+        );
+      }
+
+      if (!aiResponse || aiResponse.trim().length === 0) {
+        throw new BadRequestException(
+          'AI generated an empty response. Please try again.',
+        );
+      }
+
+      let aiMessageDoc;
+      try {
+        aiMessageDoc = await this.messagesService.createMessage(
+          'ai-assistant@system',
+          'AI Assistant',
+          { content: aiResponse },
+        );
+      } catch (error: any) {
+        throw new BadRequestException(
+          'Failed to save AI response to database. Please try again.',
+        );
+      }
+
+      const message = {
+        id: aiMessageDoc.id,
+        user: {
+          email: aiMessageDoc.userEmail,
+          name: aiMessageDoc.userName,
+        },
+        content: aiMessageDoc.content,
+        media: aiMessageDoc.media,
+        timestamp: aiMessageDoc.timestamp.toDate().toISOString(),
+      };
+
+      this.messagesGateway.emitNewMessage(message);
+
+      return message;
+    } catch (error: any) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      throw new BadRequestException(
+        error instanceof Error
+          ? error.message
+          : 'An unexpected error occurred. Please check server logs for details.',
+      );
+    }
   }
 }
