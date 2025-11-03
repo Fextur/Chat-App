@@ -30,11 +30,42 @@ export const LoginDialog = ({ open, onLoginSuccess }: LoginDialogProps) => {
     setError(null);
 
     try {
+      console.log("Starting Google login...");
       const result = await signInWithPopup(auth, googleProvider);
+      console.log("Firebase popup completed, user:", result.user.email);
+
       const idToken = await result.user.getIdToken();
-      await authService.login(idToken);
-      await queryClient.refetchQueries({ queryKey: ["auth", "me"] });
-      onLoginSuccess();
+      console.log("Got ID token, calling backend login...");
+
+      try {
+        const loginResponse = await authService.login(idToken);
+        console.log("Backend login successful:", loginResponse);
+
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
+        console.log("Refetching user data...");
+        const meResult = await queryClient.refetchQueries({
+          queryKey: ["auth", "me"],
+        });
+        console.log("User data refetch result:", meResult);
+
+        const meData = queryClient.getQueryData(["auth", "me"]);
+        console.log("Auth state after refetch:", meData);
+
+        if (meData) {
+          onLoginSuccess();
+        } else {
+          throw new Error("Failed to fetch user data after login");
+        }
+      } catch (loginErr: any) {
+        console.error("Backend login error:", loginErr);
+        console.error("Error details:", {
+          message: loginErr?.message,
+          response: loginErr?.response?.data,
+          status: loginErr?.response?.status,
+        });
+        throw loginErr;
+      }
     } catch (err: any) {
       if (
         err.code === "auth/popup-closed-by-user" ||
@@ -46,6 +77,7 @@ export const LoginDialog = ({ open, onLoginSuccess }: LoginDialogProps) => {
           err?.response?.data?.message ||
           err?.message ||
           "Failed to sign in. Please try again.";
+        console.error("Login error:", errorMessage);
         setError(errorMessage);
       }
     } finally {
