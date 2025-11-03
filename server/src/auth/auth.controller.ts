@@ -22,6 +22,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(
     @Body('idToken') idToken: string,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     if (!idToken) {
@@ -32,11 +33,12 @@ export class AuthController {
     const { accessToken, user } =
       await this.authService.createAccessTokenAndUser(decodedToken.uid);
 
-    const isProduction = process.env.NODE_ENV === 'production';
+    const isHTTPS =
+      req.protocol === 'https' || req.get('x-forwarded-proto') === 'https';
     const cookieOptions = {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: (isProduction ? 'none' : 'lax') as 'none' | 'lax',
+      secure: isHTTPS,
+      sameSite: (isHTTPS ? 'none' : 'lax') as 'none' | 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/',
     };
@@ -66,12 +68,13 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  logout(@Res({ passthrough: true }) res: Response) {
-    const isProduction = process.env.NODE_ENV === 'production';
+  logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const isHTTPS =
+      req.protocol === 'https' || req.get('x-forwarded-proto') === 'https';
     res.clearCookie('accessToken', {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      secure: isHTTPS,
+      sameSite: (isHTTPS ? 'none' : 'lax') as 'none' | 'lax',
       path: '/',
     });
     return { message: 'Logged out successfully' };
