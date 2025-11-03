@@ -109,8 +109,36 @@ export const ChatWindow = ({
       }
 
       if (message.content) {
-        const lines = Math.ceil(message.content.length / 40);
-        estimatedHeight += lines * 20;
+        // Calculate wrapped lines based on container width
+        // Account for: 70% max width, padding (1.5 * 8px = 12px each side = 24px total)
+        const containerWidth = parentRef.current?.clientWidth || 500;
+        const maxTextWidth = containerWidth * 0.7 - 24; // Account for padding
+        // Approximate characters per line (assuming ~8px per character for body1 text)
+        const charsPerLine = Math.max(1, Math.floor(maxTextWidth / 8));
+        
+        // Split content by line breaks to handle actual newlines
+        const contentLines = message.content.split('\n');
+        let totalLines = 0;
+        
+        // Calculate wrapping for each line segment (separated by \n)
+        contentLines.forEach((lineSegment) => {
+          if (lineSegment.length > 0) {
+            // Calculate how many wrapped lines this line segment needs
+            const wrappedLines = Math.ceil(lineSegment.length / charsPerLine);
+            totalLines += wrappedLines;
+          } else {
+            // Empty line segment (represents a line break creating an empty line)
+            totalLines += 1;
+          }
+        });
+        
+        // Ensure at least 1 line if content exists
+        totalLines = Math.max(1, totalLines);
+        
+        // Use line height of ~24px (body1 with some margin)
+        const lineHeight = 24;
+        estimatedHeight += totalLines * lineHeight;
+        
         if (message.media) {
           estimatedHeight += 8;
         }

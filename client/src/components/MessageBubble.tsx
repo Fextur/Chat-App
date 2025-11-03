@@ -13,9 +13,7 @@ export const MessageBubble = ({
   isCurrentUser,
   showDateHeader = false,
 }: MessageBubbleProps) => {
-  const userColor = isCurrentUser
-    ? null
-    : getUserColor(message.user.email);
+  const userColor = isCurrentUser ? null : getUserColor(message.user.email);
 
   const formatDateHeader = (date: Date) => {
     const today = new Date();
@@ -114,7 +112,6 @@ export const MessageBubble = ({
                 src={message.media}
                 alt="Shared image"
                 sx={{
-                  width: "100%",
                   maxHeight: 300,
                   objectFit: "cover",
                   borderRadius: 1.5,
