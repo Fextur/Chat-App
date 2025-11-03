@@ -35,6 +35,9 @@ export class AuthController {
 
     const isHTTPS =
       req.protocol === 'https' || req.get('x-forwarded-proto') === 'https';
+    const userAgent = req.get('user-agent') || '';
+    const isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
+
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
       secure: isHTTPS,
@@ -48,6 +51,7 @@ export class AuthController {
         email: user.email,
         name: user.name,
       },
+      ...(isSafari && { accessToken }),
     };
   }
 
