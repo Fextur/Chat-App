@@ -6,6 +6,13 @@ import { useUser } from "@/hooks/auth/useUser";
 const API_URL =
   (import.meta as any).env?.VITE_API_URL || "http://localhost:3000";
 
+const getToken = (): string | null => {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("accessToken");
+  }
+  return null;
+};
+
 export const useWebSocket = (onNewMessage: (message: Message) => void) => {
   const socketRef = useRef<Socket | null>(null);
   const callbackRef = useRef(onNewMessage);
@@ -28,12 +35,14 @@ export const useWebSocket = (onNewMessage: (message: Message) => void) => {
       return;
     }
 
+    const token = getToken();
     const socket = io(API_URL, {
       withCredentials: true,
       transports: ["websocket", "polling"],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
+      auth: token ? { token } : undefined,
     });
 
     socketRef.current = socket;

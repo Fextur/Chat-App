@@ -28,7 +28,21 @@ export class MessagesGateway
   async handleConnection(@ConnectedSocket() client: Socket) {
     try {
       const cookies = client.handshake.headers.cookie || '';
-      const accessToken = this.extractAccessToken(cookies);
+      let accessToken = this.extractAccessToken(cookies);
+
+      if (!accessToken) {
+        const authHeader = client.handshake.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          accessToken = authHeader.substring(7);
+        }
+      }
+
+      if (!accessToken) {
+        const authData = client.handshake.auth as { token?: string };
+        if (authData?.token) {
+          accessToken = authData.token;
+        }
+      }
 
       if (!accessToken) {
         client.disconnect();
