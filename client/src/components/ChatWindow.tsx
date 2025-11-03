@@ -85,7 +85,6 @@ export const ChatWindow = ({
         const dimensions = imageDimensionsRef.current.get(message.media);
         if (dimensions) {
           const containerWidth = parentRef.current?.clientWidth || 500;
-          // Match mobile breakpoint: use 85% on mobile (xs), 70% on larger screens
           const isMobile = containerWidth < 600;
           const maxWidth = containerWidth * (isMobile ? 0.85 : 0.7);
           const maxHeight = 300;
@@ -113,16 +112,10 @@ export const ChatWindow = ({
 
       if (message.content) {
         const containerWidth = parentRef.current?.clientWidth || 500;
-        // Detect mobile: use 85% max width on mobile (xs), 70% on larger screens
-        const isMobile = containerWidth < 600; // Material-UI sm breakpoint is 600px
+        const isMobile = containerWidth < 600;
         const maxBubbleWidth = containerWidth * (isMobile ? 0.85 : 0.7);
-        
-        // Account for padding: px: { xs: 1.5 (12px), sm: 2 (16px) } and Paper padding: 1.75 (14px)
-        const horizontalPadding = isMobile ? 12 + 14 : 16 + 14; // px + Paper padding
+        const horizontalPadding = isMobile ? 12 + 14 : 16 + 14;
         const maxTextWidth = maxBubbleWidth - horizontalPadding * 2;
-        
-        // Font size is 0.9375rem (15px), estimate average character width at ~9px
-        // This accounts for mixed character widths (some wider, some narrower)
         const avgCharWidth = 9;
         const charsPerLine = Math.max(1, Math.floor(maxTextWidth / avgCharWidth));
         
@@ -139,8 +132,6 @@ export const ChatWindow = ({
         });
         
         totalLines = Math.max(1, totalLines);
-        
-        // Actual line height: 1.5 * 15px (font-size) = 22.5px, round to 23px
         const lineHeight = 23;
         estimatedHeight += totalLines * lineHeight;
         
@@ -164,14 +155,12 @@ export const ChatWindow = ({
     virtualizer.measure();
   }, [messages, currentUserEmail, virtualizer]);
 
-  // Recalculate sizes when window resizes (e.g., mobile rotation, window resize)
   useEffect(() => {
     const handleResize = () => {
       virtualizer.measure();
     };
 
     window.addEventListener('resize', handleResize);
-    // Also listen to ResizeObserver for container size changes
     const resizeObserver = new ResizeObserver(() => {
       virtualizer.measure();
     });

@@ -35,7 +35,6 @@ export const useMessages = () => {
     getNextPageParam: (lastPage) => lastPage.oldestMessageId,
   });
 
-  // Handle WebSocket messages - add to the first page without resetting pagination
   const handleNewMessage = useCallback(
     (message: Message) => {
       queryClient.setQueryData<InfiniteData<{
@@ -55,7 +54,6 @@ export const useMessages = () => {
           };
         }
 
-        // Check if message already exists (avoid duplicates)
         const messageExists = oldData.pages.some((page) =>
           page.messages.some((m) => m.id === message.id)
         );
@@ -64,7 +62,6 @@ export const useMessages = () => {
           return oldData;
         }
 
-        // Add to the first page (newest messages)
         const firstPage = oldData.pages[0];
         const updatedFirstPage = {
           ...firstPage,
@@ -80,17 +77,10 @@ export const useMessages = () => {
     [queryClient]
   );
 
-  // Set up WebSocket connection
   useWebSocket(handleNewMessage);
 
-  // Flatten all messages from all pages
-  // Pages are ordered: [newest_page, older_page_1, older_page_2, ...]
-  // Within each page, messages are ordered: [oldest, ..., newest]
-  // We need to flatten in order: [older_page_2, ..., older_page_1, newest_page]
-  // to get chronological order: [oldest, ..., newest]
   const allMessages = useMemo(() => {
     if (!data) return [];
-    // Reverse pages to get older pages first, then flatten
     const reversedPages = [...data.pages].reverse();
     return reversedPages.flatMap((page) => page.messages);
   }, [data]);

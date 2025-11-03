@@ -34,7 +34,6 @@ export const Chat = () => {
       queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
       window.location.reload();
     } catch {
-      // Error handling
     }
   };
 

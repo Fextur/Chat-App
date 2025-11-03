@@ -215,7 +215,7 @@ export class MessagesService {
       .limit(limit);
 
     const snapshot = await query.get();
-    const docs = snapshot.docs.reverse(); // Reverse to get chronological order
+    const docs = snapshot.docs.reverse();
 
     const storedDocuments = docs.map((doc) => ({
       id: doc.id,

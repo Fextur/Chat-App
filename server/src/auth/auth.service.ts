@@ -18,7 +18,6 @@ export class AuthService {
       const decodedToken = await this.firebaseAuth.verifyIdToken(idToken);
       return decodedToken;
     } catch (error: any) {
-      console.error('Firebase ID token verification error:', error);
       const errorMessage =
         error?.message || error?.code || 'Invalid ID token';
       throw new UnauthorizedException(
