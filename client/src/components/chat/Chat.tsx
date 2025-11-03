@@ -6,6 +6,8 @@ import { useMessages } from "@/hooks/chat/useMessages";
 import { useUser } from "@/hooks/auth/useUser";
 import { authService } from "@/services/auth.service";
 import { useQueryClient } from "@tanstack/react-query";
+import { signOut } from "firebase/auth";
+import { auth } from "@/config/firebase";
 
 export const Chat = () => {
   const {
@@ -22,10 +24,14 @@ export const Chat = () => {
 
   const handleLogout = useCallback(async () => {
     try {
+      await signOut(auth);
       await authService.logout();
       queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
       window.location.reload();
-    } catch {}
+    } catch (error) {
+      console.error("Error during logout:", error);
+      window.location.reload();
+    }
   }, [queryClient]);
 
   return (
