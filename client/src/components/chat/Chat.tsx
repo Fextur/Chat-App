@@ -1,9 +1,9 @@
 import { useCallback } from "react";
 import { Box, AppBar, Toolbar, Typography, Button } from "@mui/material";
-import { ChatWindow } from "@/components/ChatWindow";
-import { MessageInput } from "@/components/MessageInput";
-import { useMessages } from "@/hooks/useMessages";
-import { useUser } from "@/hooks/useUser";
+import { ChatWindow } from "@/components/chat/ChatWindow";
+import { MessageInput } from "@/components/chat/MessageInput";
+import { useMessages } from "@/hooks/chat/useMessages";
+import { useUser } from "@/hooks/auth/useUser";
 import { authService } from "@/services/auth.service";
 import { useQueryClient } from "@tanstack/react-query";
 

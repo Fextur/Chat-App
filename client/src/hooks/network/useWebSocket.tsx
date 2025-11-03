@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { Message } from "@/types";
-import { useUser } from "./useUser";
+import { useUser } from "@/hooks/auth/useUser";
 
 const API_URL =
   (import.meta as any).env?.VITE_API_URL || "http://localhost:3000";

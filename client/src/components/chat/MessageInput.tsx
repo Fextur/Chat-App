@@ -3,7 +3,6 @@ import {
   useRef,
   ChangeEvent,
   KeyboardEvent,
-  DragEvent,
   useCallback,
   useMemo,
   useEffect,
@@ -18,9 +17,11 @@ import {
   Alert,
   Snackbar,
 } from "@mui/material";
-import { Send, ImagePlus, X, Sparkles } from "lucide-react";
-import { useAIAssistance } from "@/hooks/useAIAssistance";
-import { useSendMessage } from "@/hooks/useSendMessage";
+import { Send, ImagePlus, Sparkles } from "lucide-react";
+import { useAIAssistance } from "@/hooks/chat/useAIAssistance";
+import { useSendMessage } from "@/hooks/chat/useSendMessage";
+import { useDragAndDrop } from "@/hooks/chat/useDragAndDrop";
+import { ImagePreview } from "@/components/ui/ImagePreview";
 
 const MAX_MESSAGE_LENGTH = 200;
 
@@ -28,8 +29,6 @@ export const MessageInput = () => {
   const [message, setMessage] = useState("");
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [_dragCounter, setDragCounter] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -119,52 +118,10 @@ export const MessageInput = () => {
     }
   }, []);
 
-  const handleDragEnter = useCallback(
-    (e: DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!sendMessageMutation.isPending) {
-        setDragCounter((prev) => prev + 1);
-        setIsDragging(true);
-      }
-    },
-    [sendMessageMutation.isPending]
-  );
-
-  const handleDragOver = useCallback((e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const handleDragLeave = useCallback((e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragCounter((prev) => {
-      const newCounter = prev - 1;
-      if (newCounter === 0) {
-        setIsDragging(false);
-      }
-      return newCounter;
-    });
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDragging(false);
-      setDragCounter(0);
-
-      if (sendMessageMutation.isPending) return;
-
-      const files = e.dataTransfer.files;
-      if (files && files.length > 0) {
-        const file = files[0];
-        processImageFile(file);
-      }
-    },
-    [sendMessageMutation.isPending, processImageFile]
-  );
+  const { isDragging, dragHandlers } = useDragAndDrop({
+    onFileSelected: processImageFile,
+    disabled: sendMessageMutation.isPending,
+  });
 
   const remaining = useMemo(
     () => MAX_MESSAGE_LENGTH - message.length,
@@ -199,10 +156,7 @@ export const MessageInput = () => {
 
       <Paper
         elevation={0}
-        onDragEnter={handleDragEnter}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+        {...dragHandlers}
         sx={{
           position: "sticky",
           bottom: 0,
@@ -221,47 +175,7 @@ export const MessageInput = () => {
         }}
       >
         {mediaPreview && (
-          <Box
-            sx={{
-              mb: 1.5,
-              position: "relative",
-              display: "inline-block",
-            }}
-          >
-            <Box
-              component="img"
-              src={mediaPreview}
-              alt="Preview"
-              sx={{
-                maxWidth: 200,
-                maxHeight: 150,
-                borderRadius: 2.5,
-                objectFit: "cover",
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-              }}
-            />
-            <IconButton
-              size="small"
-              onClick={handleRemoveImage}
-              sx={{
-                position: "absolute",
-                top: -8,
-                right: -8,
-                backgroundColor: "error.main",
-                color: "white",
-                width: 24,
-                height: 24,
-                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-                "&:hover": {
-                  backgroundColor: "error.dark",
-                  transform: "scale(1.1)",
-                },
-                transition: "transform 0.2s ease",
-              }}
-            >
-              <X size={14} />
-            </IconButton>
-          </Box>
+          <ImagePreview src={mediaPreview} onRemove={handleRemoveImage} />
         )}
 
         <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>

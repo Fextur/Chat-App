@@ -6,7 +6,7 @@ import {
   InfiniteData,
 } from "@tanstack/react-query";
 import { messagesService } from "@/services/messages.service";
-import { useWebSocket } from "./useWebSocket";
+import { useWebSocket } from "@/hooks/network/useWebSocket";
 
 const MESSAGES_PER_PAGE = 10;
 const MESSAGES_QUERY_KEY = ["messages"];

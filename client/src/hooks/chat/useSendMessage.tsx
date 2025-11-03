@@ -5,7 +5,7 @@ import {
 } from "@tanstack/react-query";
 import { messagesService } from "@/services/messages.service";
 import { Message } from "@/types";
-import { useUser } from "./useUser";
+import { useUser } from "@/hooks/auth/useUser";
 
 const MESSAGES_QUERY_KEY = ["messages"];
 

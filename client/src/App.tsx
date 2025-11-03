@@ -1,9 +1,9 @@
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import { QueryProvider } from "@/providers/QueryProvider";
-import { useTheme } from "@/hooks/useTheme";
-import { useUser } from "@/hooks/useUser";
-import { Chat } from "@/components/Chat";
-import { LoginDialog } from "@/components/LoginDialog";
+import { useTheme } from "@/hooks/ui/useTheme";
+import { useUser } from "@/hooks/auth/useUser";
+import { Chat } from "@/components/chat/Chat";
+import { LoginDialog } from "@/components/auth/LoginDialog";
 import { useState, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
