@@ -126,7 +126,8 @@ export const useChatWindowScroll = ({
                   requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                       if (parentRef.current) {
-                        parentRef.current.scrollTop = parentRef.current.scrollHeight;
+                        parentRef.current.scrollTop =
+                          parentRef.current.scrollHeight;
                       }
                     });
                   });
@@ -190,7 +191,7 @@ export const useChatWindowScroll = ({
 
             if (shouldScroll) {
               pendingScrollRef.current = true;
-              
+
               setTimeout(() => {
                 if (parentRef.current) {
                   parentRef.current.scrollTo({
@@ -200,16 +201,22 @@ export const useChatWindowScroll = ({
 
                   setTimeout(() => {
                     if (parentRef.current && pendingScrollRef.current) {
-                      const scrollHeightAfterScroll = parentRef.current.scrollHeight;
-                      
+                      const scrollHeightAfterScroll =
+                        parentRef.current.scrollHeight;
+
                       const checkAndRescrollAfterImage = () => {
                         if (parentRef.current && pendingScrollRef.current) {
-                          const currentScrollHeight = parentRef.current.scrollHeight;
+                          const currentScrollHeight =
+                            parentRef.current.scrollHeight;
                           if (currentScrollHeight > scrollHeightAfterScroll) {
                             requestAnimationFrame(() => {
                               requestAnimationFrame(() => {
-                                if (parentRef.current && pendingScrollRef.current) {
-                                  parentRef.current.scrollTop = parentRef.current.scrollHeight;
+                                if (
+                                  parentRef.current &&
+                                  pendingScrollRef.current
+                                ) {
+                                  parentRef.current.scrollTop =
+                                    parentRef.current.scrollHeight;
                                   pendingScrollRef.current = false;
                                 }
                               });
@@ -253,10 +260,15 @@ export const useChatWindowScroll = ({
               const newScrollHeight = scrollElement.scrollHeight;
               const currentScrollTop = scrollElement.scrollTop;
               const clientHeight = scrollElement.clientHeight;
-              
-              const isNearBottom = newScrollHeight - currentScrollTop - clientHeight < 200;
-              
-              if (isNearBottom || !hasInitialScrollCompletedRef.current || pendingScrollRef.current) {
+
+              const isNearBottom =
+                newScrollHeight - currentScrollTop - clientHeight < 200;
+
+              if (
+                isNearBottom ||
+                !hasInitialScrollCompletedRef.current ||
+                pendingScrollRef.current
+              ) {
                 scrollElement.scrollTop = newScrollHeight;
                 if (pendingScrollRef.current) {
                   pendingScrollRef.current = false;
