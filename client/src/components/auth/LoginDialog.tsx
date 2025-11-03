@@ -9,9 +9,8 @@ import {
   Stack,
   Alert,
 } from "@mui/material";
-import { signInWithPopup } from "firebase/auth";
+import { signInWithRedirect } from "firebase/auth";
 import { auth, googleProvider } from "@/config/firebase";
-import { authService } from "@/services/auth.service";
 import { useState } from "react";
 
 interface LoginDialogProps {
@@ -19,7 +18,7 @@ interface LoginDialogProps {
   onLoginSuccess: () => void;
 }
 
-export const LoginDialog = ({ open, onLoginSuccess }: LoginDialogProps) => {
+export const LoginDialog = ({ open }: LoginDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,17 +27,13 @@ export const LoginDialog = ({ open, onLoginSuccess }: LoginDialogProps) => {
     setError(null);
 
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const idToken = await result.user.getIdToken();
-      await authService.login(idToken);
-      onLoginSuccess();
+      await signInWithRedirect(auth, googleProvider);
     } catch (err: any) {
       const errorMessage =
         err?.response?.data?.message ||
         err?.message ||
         "Failed to sign in. Please try again.";
       setError(errorMessage);
-    } finally {
       setLoading(false);
     }
   };
@@ -104,23 +99,12 @@ export const LoginDialog = ({ open, onLoginSuccess }: LoginDialogProps) => {
           variant="contained"
           fullWidth
           size="large"
-          startIcon={
-            loading ? (
-              <CircularProgress size={20} color="inherit" thickness={4} />
-            ) : null
-          }
+          startIcon={loading ? <CircularProgress size={20} /> : null}
           sx={{
             py: 1.5,
-            borderRadius: 2.5,
             textTransform: "none",
-            fontSize: "0.9375rem",
+            fontSize: "1rem",
             fontWeight: 500,
-            boxShadow: "0 4px 12px rgba(0, 122, 255, 0.25)",
-            "&:hover": {
-              boxShadow: "0 6px 16px rgba(0, 122, 255, 0.3)",
-              transform: "translateY(-1px)",
-            },
-            transition: "all 0.2s ease",
           }}
         >
           {loading ? "Signing in..." : "Sign in with Google"}
