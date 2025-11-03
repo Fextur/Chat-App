@@ -1,4 +1,12 @@
-import { useState, useRef, ChangeEvent, KeyboardEvent, DragEvent } from "react";
+import {
+  useState,
+  useRef,
+  ChangeEvent,
+  KeyboardEvent,
+  DragEvent,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   Box,
   TextField,
@@ -44,7 +52,7 @@ export const MessageInput = ({
     },
   });
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     if (
       (message.trim() || selectedFile) &&
       message.length <= MAX_MESSAGE_LENGTH &&
@@ -80,16 +88,19 @@ export const MessageInput = ({
         fileInputRef.current.value = "";
       }
     }
-  };
+  }, [message, selectedFile, isUploading, onSend]);
 
-  const handleKeyPress = (e: KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
+  const handleKeyPress = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+    },
+    [handleSend]
+  );
 
-  const processImageFile = (file: File) => {
+  const processImageFile = useCallback((file: File) => {
     if (file && file.type.startsWith("image/")) {
       setSelectedFile(file);
       const reader = new FileReader();
@@ -98,38 +109,44 @@ export const MessageInput = ({
       };
       reader.readAsDataURL(file);
     }
-  };
+  }, []);
 
-  const handleImageSelect = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      processImageFile(file);
-    }
-  };
+  const handleImageSelect = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        processImageFile(file);
+      }
+    },
+    [processImageFile]
+  );
 
-  const handleRemoveImage = () => {
+  const handleRemoveImage = useCallback(() => {
     setMediaPreview(null);
     setSelectedFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  };
+  }, []);
 
-  const handleDragEnter = (e: DragEvent) => {
+  const handleDragEnter = useCallback(
+    (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!isPending && !isUploading) {
+        setDragCounter((prev) => prev + 1);
+        setIsDragging(true);
+      }
+    },
+    [isPending, isUploading]
+  );
+
+  const handleDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!isPending && !isUploading) {
-      setDragCounter((prev) => prev + 1);
-      setIsDragging(true);
-    }
-  };
+  }, []);
 
-  const handleDragOver = (e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDragLeave = (e: DragEvent) => {
+  const handleDragLeave = useCallback((e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragCounter((prev) => {
@@ -139,27 +156,39 @@ export const MessageInput = ({
       }
       return newCounter;
     });
-  };
+  }, []);
 
-  const handleDrop = (e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    setDragCounter(0);
+  const handleDrop = useCallback(
+    (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+      setDragCounter(0);
 
-    if (isPending || isUploading) return;
+      if (isPending || isUploading) return;
 
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      processImageFile(file);
-    }
-  };
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) {
+        const file = files[0];
+        processImageFile(file);
+      }
+    },
+    [isPending, isUploading, processImageFile]
+  );
 
-  const remaining = MAX_MESSAGE_LENGTH - message.length;
-  const isOverLimit = remaining < 0;
-  const hasContent = message.trim() || selectedFile;
-  const canShowAIAssistance = !hasContent && !isPending && !isUploading;
+  const remaining = useMemo(
+    () => MAX_MESSAGE_LENGTH - message.length,
+    [message.length]
+  );
+  const isOverLimit = useMemo(() => remaining < 0, [remaining]);
+  const hasContent = useMemo(
+    () => message.trim() || selectedFile,
+    [message, selectedFile]
+  );
+  const canShowAIAssistance = useMemo(
+    () => !hasContent && !isPending && !isUploading,
+    [hasContent, isPending, isUploading]
+  );
 
   return (
     <>

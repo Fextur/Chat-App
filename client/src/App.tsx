@@ -4,7 +4,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useUser } from "@/hooks/useUser";
 import { Chat } from "@/components/Chat";
 import { LoginDialog } from "@/components/LoginDialog";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 function AppContent() {
@@ -20,10 +20,10 @@ function AppContent() {
     }
   }, [isAuthenticated, isLoading]);
 
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
     setShowLoginDialog(false);
-  };
+  }, [queryClient]);
 
   return (
     <>

@@ -63,4 +63,3 @@ export const useWebSocket = (onNewMessage: (message: Message) => void) => {
 
   return socketRef.current;
 };
-

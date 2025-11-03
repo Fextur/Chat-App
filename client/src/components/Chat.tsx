@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { Box, AppBar, Toolbar, Typography, Button } from "@mui/material";
 import { ChatWindow } from "@/components/ChatWindow";
 import { MessageInput } from "@/components/MessageInput";
@@ -21,21 +22,21 @@ export const Chat = () => {
   const { user } = useUser();
   const queryClient = useQueryClient();
 
-  const handleSendMessage = (newMessage: {
+  const handleSendMessage = useCallback((newMessage: {
     content?: string;
     media?: string;
   }) => {
     sendMessage(newMessage);
-  };
+  }, [sendMessage]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       await authService.logout();
       queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
       window.location.reload();
     } catch {
     }
-  };
+  }, [queryClient]);
 
   return (
     <Box

@@ -1,7 +1,8 @@
+import { useMemo } from "react";
 import { createTheme } from "@mui/material";
 
 export const useTheme = () => {
-  return createTheme({
+  return useMemo(() => createTheme({
     palette: {
       mode: "light",
       primary: {
@@ -110,5 +111,5 @@ export const useTheme = () => {
         },
       },
     },
-  });
+  }), []);
 };

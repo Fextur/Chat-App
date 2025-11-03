@@ -1,4 +1,4 @@
-import { useRef, useEffect, useLayoutEffect, useMemo } from "react";
+import { useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import { Box, CircularProgress, Typography, Button } from "@mui/material";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Message } from "@/types";
@@ -14,6 +14,14 @@ interface ChatWindowProps {
   onLoadMore: () => void;
   onRetry?: () => void;
 }
+
+const isSameDay = (date1: Date, date2: Date) => {
+  return (
+    date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getDate() === date2.getDate()
+  );
+};
 
 export const ChatWindow = ({
   messages,
@@ -43,15 +51,7 @@ export const ChatWindow = ({
   const previousScrollTopRef = useRef<number>(0);
   const hasInitialScrollCompletedRef = useRef(false);
 
-  const isSameDay = (date1: Date, date2: Date) => {
-    return (
-      date1.getFullYear() === date2.getFullYear() &&
-      date1.getMonth() === date2.getMonth() &&
-      date1.getDate() === date2.getDate()
-    );
-  };
-
-  const shouldShowDateHeader = (currentIndex: number): boolean => {
+  const shouldShowDateHeader = useCallback((currentIndex: number): boolean => {
     if (currentIndex === 0) return true;
 
     const currentMessage = messages[currentIndex];
@@ -61,7 +61,7 @@ export const ChatWindow = ({
       new Date(currentMessage.timestamp),
       new Date(previousMessage.timestamp)
     );
-  };
+  }, [messages]);
 
   const estimateSize = useMemo(() => {
     return (index: number): number => {
@@ -632,6 +632,8 @@ export const ChatWindow = ({
       >
         {virtualizer.getVirtualItems().map((virtualItem) => {
           const message = messages[virtualItem.index];
+          if (!message) return null;
+          
           const isCurrentUser = message.user.email === currentUserEmail;
           const showDateHeader = shouldShowDateHeader(virtualItem.index);
 
